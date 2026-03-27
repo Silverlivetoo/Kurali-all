@@ -14,6 +14,7 @@ echo -e "${BLUE}[KuraliAll]${NC} 安装到系统..."
 
 mkdir -p "$TARGET"
 cp -a "$DIR/modules" "$DIR/config" "$DIR/hooks" "$DIR/kuraliAll.sh" "$TARGET/" 2>/dev/null || true
+chmod +x "$TARGET/kuraliAll.sh"
 mkdir -p "$TARGET"/{db,logs,pkg,backup,cache}
 
 cat > "$BIN" << 'EOF'
@@ -22,7 +23,7 @@ exec /var/lib/kuraliAll/kuraliAll.sh "$@"
 EOF
 chmod +x "$BIN"
 
-echo "2.0.0" > "$TARGET/version"
+echo "2.1.0" > "$TARGET/version"
 
 echo -e "\n${GREEN}✓ 安装完成！${NC}"
 echo -e "  入口: ${BLUE}${BIN}${NC}"

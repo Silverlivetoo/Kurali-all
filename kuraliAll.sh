@@ -281,6 +281,7 @@ cmd_install_self() {
     local target="/var/lib/kuraliAll"
     mkdir -p "$target"
     cp -a "${_K_DIR}/modules" "${_K_DIR}/config" "${_K_DIR}/hooks" "${_K_DIR}/kuraliAll.sh" "$target/" 2>/dev/null || true
+    chmod +x "${target}/kuraliAll.sh"
     mkdir -p "${target}/db" "${target}/logs" "${target}/pkg" "${target}/backup" "${target}/cache"
 
     local wrapper="/usr/local/bin/kurali"

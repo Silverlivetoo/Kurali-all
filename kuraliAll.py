@@ -298,6 +298,23 @@ def cmd_install(filepath, pkg_name=None, system_mode=False):
                 pass
             if not pkg_name:
                 pkg_name = filepath.stem.split('-')[0].lower()
+        elif fmt == 'deb':
+            # deb：优先用 dpkg-deb 提取 Package 字段
+            r = run_cmd(['dpkg-deb', '-f', str(filepath), 'Package'])
+            pkg_name = r.stdout.strip() if r and r.stdout.strip() else filepath.stem.split('-')[0].lower()
+        elif fmt == 'rpm':
+            # rpm：优先用 rpm 查询 NAME
+            r = run_cmd(['rpm', '-qp', '--qf', '%{NAME}', str(filepath)])
+            pkg_name = r.stdout.strip() if r and r.stdout.strip() else filepath.stem.split('-')[0].lower()
+        elif fmt == 'pacman':
+            r = run_cmd(['bsdtar', 'xf', str(filepath), '-O', '.PKGINFO'])
+            if r:
+                for line in r.stdout.splitlines():
+                    if re.match(r'^pkgname\s*=', line):
+                        pkg_name = line.split('=',1)[1].strip()
+                        break
+            if not pkg_name:
+                pkg_name = re.sub(r'\.pkg\.tar.*', '', filepath.name).lower()
         else:
             pkg_name = filepath.stem.split('.')[0].lower()
 
@@ -486,10 +503,26 @@ def cmd_deps(target=None):
         r = run_cmd(['ldd','--version'])
         if r:
             print(f"  glibc: {r.stdout.split(chr(10))[0]}")
-        for lib in ['libc.so','libm.so','libdl.so','libpthread.so','libz.so']:
+        for lib in ['libc.so','libm.so','libdl.so','libpthread.so','libz.so','libssl.so']:
+            # 方法1: ldconfig
             r = run_cmd(['ldconfig','-p'])
-            found = r and lib in r.stdout
-            mark = f"{C.G}✓{C.RESET}" if found else f"{C.R}✗{C.RESET}"
+            found = r and lib.replace('.so','') in r.stdout
+            # 方法2: 常见库路径回退
+            if not found:
+                import os as _os
+                for d in ['/lib','/lib64','/usr/lib','/usr/lib64',
+                          '/usr/lib/x86_64-linux-gnu','/lib/x86_64-linux-gnu']:
+                    if Path(d).is_dir():
+                        try:
+                            for f in _os.listdir(d):
+                                if lib in f:
+                                    found = True
+                                    break
+                        except PermissionError:
+                            pass
+                    if found:
+                        break
+            mark = f"{C.G}✓{C.RESET}" if found else f"{C.Y}?{C.RESET}"
             print(f"  {mark} {lib}")
     elif Path(target).exists():
         info(f"依赖检查: {Path(target).name}")
@@ -517,7 +550,15 @@ def cmd_pack(filepath, output=None):
     if fmt == 'kurali':
         die("文件已经是 .kurali 格式")
 
-    pkg_name = filepath.stem.split('.')[0].lower()
+    # 从实际格式提取包名（而非仅用文件名）
+    if fmt == 'deb':
+        r = run_cmd(['dpkg-deb', '-f', str(filepath), 'Package'])
+        pkg_name = r.stdout.strip().lower() if r and r.stdout.strip() else filepath.stem.split('-')[0].lower()
+    elif fmt == 'rpm':
+        r = run_cmd(['rpm', '-qp', '--qf', '%{NAME}', str(filepath)])
+        pkg_name = r.stdout.strip().lower() if r and r.stdout.strip() else filepath.stem.split('-')[0].lower()
+    else:
+        pkg_name = filepath.stem.split('.')[0].lower()
     pkg_version = "unknown"
     if output is None:
         output = f"{pkg_name}-{pkg_version}.kurali"
