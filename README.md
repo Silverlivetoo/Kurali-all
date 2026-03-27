@@ -209,4 +209,4 @@ Alpine · openSUSE · SLES · Void · Solus · NixOS · Gentoo
 
 ## 📄 许可
 
-MIT — 自由使用、修改、分发。
+自行查看
