@@ -382,6 +382,19 @@ python3 kuraliAll-gui.py
 sudo kurali i <文件>
 ```
 
+### install.sh 安装后 Permission denied
+v2.1.2 已修复。旧版本安装后 `kurali` 命令报错是因为 `kuraliAll.sh` 缺少执行权限。
+如仍有此问题，手动执行：
+```bash
+sudo chmod +x /var/lib/kuraliAll/kuraliAll.sh
+```
+
+### Python 版 deps 显示全部 ✗
+v2.1.2 已修复。旧版本在 `ldconfig` 不在 PATH 时会误报，更新后自动回退到常见库路径搜索。
+
+### Python 版安装 deb 包名不正确
+v2.1.2 已修复。旧版本用文件名推断包名（如 `myapp_1.0_amd64.deb` → `myapp_1`），现在优先用 `dpkg-deb -f` 提取真实的 Package 字段。
+
 ### 程序运行报错
 ```bash
 # 检查依赖
@@ -415,3 +428,17 @@ pacman -Sw <包名>
 
 # 或从官网直接下载 .deb/.rpm/.AppImage 等
 ```
+
+---
+
+## 更新日志
+
+### v2.1.2 — Bug 修复
+
+| # | 模块 | 修复 |
+|---|------|------|
+| 1 | install.sh | 安装后 `chmod +x kuraliAll.sh`，修复 Permission denied |
+| 2 | install.sh | 版本号同步为 2.1.0 |
+| 3 | kuraliAll.sh | `--install-self` 同样添加 `chmod +x` |
+| 4 | kuraliAll.py | `deps` 在 ldconfig 不可用时回退到库路径搜索 |
+| 5 | kuraliAll.py | deb/rpm 包名用 `dpkg-deb -f` / `rpm -qp` 提取 |

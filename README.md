@@ -154,6 +154,16 @@ Alpine · openSUSE · SLES · Void · Solus · NixOS · Gentoo
 | 4 | ram-run.mod | /tmp 文件系统类型检测 + 提示 |
 | 5 | desktop.mod | xdg-desktop-menu 刷新备用 |
 
+## 🔧 v2.1.2 更新记录 — Bug 修复
+
+| # | 模块 | 严重度 | 修复 |
+|---|------|--------|------|
+| 1 | install.sh | 🔴 高 | 安装后添加 `chmod +x kuraliAll.sh`，修复 Permission denied |
+| 2 | install.sh | 🟡 中 | 版本号从 `2.0.0` 同步为 `2.1.0` |
+| 3 | kuraliAll.sh | 🟡 中 | `--install-self` 同样添加 `chmod +x` |
+| 4 | kuraliAll.py | 🟡 中 | `deps` 命令在 `ldconfig` 不可用时回退到常见库路径搜索 |
+| 5 | kuraliAll.py | 🟡 中 | deb/rpm 包名提取改用 `dpkg-deb -f` / `rpm -qp`，不再仅靠文件名推断 |
+
 ## 📄 许可
 
 MIT — 自由使用、修改、分发。
