@@ -7,7 +7,7 @@ import os, sys, subprocess, shutil, tarfile, zipfile, tempfile, time, json, stat
 from pathlib import Path
 from datetime import datetime
 
-VERSION = "2.1.2"
+VERSION = "2.2.0"
 
 # ─── 颜色 ───
 class C:
