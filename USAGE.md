@@ -1,4 +1,4 @@
-# KuraliAll v2.1 — 详细使用手册
+# KuraliAll v2.1.2 — 详细使用手册
 
 ## 目录如下
 

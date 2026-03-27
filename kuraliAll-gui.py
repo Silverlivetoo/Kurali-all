@@ -6,7 +6,7 @@ KuraliAll v2.1 — 终端 GUI 版 (curses)
 import os, sys, curses, subprocess, time, tempfile, shutil, tarfile, zipfile, stat
 from pathlib import Path
 
-VERSION = "2.1.0"
+VERSION = "2.1.2"
 KURALI_HOME = Path(os.environ.get("KURALI_HOME", "/var/lib/kuraliAll"))
 PKG_DIR = KURALI_HOME / "pkg"
 

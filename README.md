@@ -1,6 +1,6 @@
 
 
-# KuraliAll v2.1 — 全能 Linux 包管理器
+# KuraliAll v2.1.2 — 全能 Linux 包管理器
 
 > 在任意 Linux 发行版上，安装任意 Linux 发行版的离线软件包。
 > 100% 离线工作，纯 Shell 实现，零外部依赖。

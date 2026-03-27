@@ -23,7 +23,7 @@ exec /var/lib/kuraliAll/kuraliAll.sh "$@"
 EOF
 chmod +x "$BIN"
 
-echo "2.1.0" > "$TARGET/version"
+echo "2.1.2" > "$TARGET/version"
 
 echo -e "\n${GREEN}✓ 安装完成！${NC}"
 echo -e "  入口: ${BLUE}${BIN}${NC}"

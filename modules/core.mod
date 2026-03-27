@@ -2,7 +2,7 @@
 # core.mod — 核心：常量、日志、模块加载器
 # KuraliAll v2.1
 
-KURALI_VERSION="2.1.0"
+KURALI_VERSION="2.1.2"
 KURALI_NAME="KuraliAll"
 
 # ─── 颜色 ───
