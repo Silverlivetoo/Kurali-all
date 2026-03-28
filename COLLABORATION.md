@@ -9,8 +9,7 @@ git checkout yuanbao
 
 yuanbao 分支包含：
 - OpenClaw 工作空间配置
-- README.md（项目说明）
-- 多种技能文件
+- Shell 技能集合
 
 ### 2. 查看 wudao-bot 分支的代码
 ```bash
@@ -20,7 +19,7 @@ git checkout wudao-bot
 wudao-bot 分支包含：
 - OpenClaw 工作空间配置
 - CONTRIBUTORS.md（贡献者文档）
-- 多种技能文件
+- Shell 技能集合
 
 ### 3. 查看 silverkurali-bot 分支的代码
 ```bash
@@ -31,7 +30,7 @@ silverkurali-bot 分支包含：
 - OpenClaw 工作空间配置
 - README.md（项目说明）
 - TESTING.md（测试指南）
-- 多种技能文件
+- COLLABORATION.md（协作指南）
 
 ## 查看差异的方法
 
@@ -64,32 +63,17 @@ git diff yuanbao wudao-bot CONTRIBUTORS.md
 
 仓库地址：https://gitee.com/AY77-OP/kurali-all
 
-认证信息：
-- 私人令牌：c46bbc064ac8448e0653c0b1b5b005c5 (由 SilverKurali 提供)
-
 可以使用以下命令查看远程分支：
 ```bash
 git fetch origin
 git branch -r
 ```
 
-## Git 认证配置
-
-使用令牌进行认证：
-```bash
-git config credential.helper 'store'
-```
-
-然后将以下内容添加到 .git-credentials：
-```
-https://SilverKurali:c46bbc064ac8448e0653c0b1b5b005c5@gitee.com
-```
-
 ## 分支管理
 
-目前已有三个分支：
+目前有三个分支：
 - yuanbao（元宝）
 - wudao-bot（無道的Bot）
 - silverkurali-bot（SilverKurali的Bot）
 
-每个分支都包含了独特的文档文件，展示了不同的工作重点。
+每个分支都专注于 Shell/CLI 技能开发，已移除 GUI 相关组件。
