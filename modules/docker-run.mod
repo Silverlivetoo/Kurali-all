@@ -5,9 +5,9 @@
 CONTAINER_RT=""  # docker 或 podman
 
 detect_container_rt() {
-    if has_cmd docker && docker info &>/dev/null 2>&1; then
+    if has_cmd docker && docker info &>/dev/null; then
         CONTAINER_RT="docker"
-    elif has_cmd podman && podman info &>/dev/null 2>&1; then
+    elif has_cmd podman && podman info &>/dev/null; then
         CONTAINER_RT="podman"
     else
         return 1
@@ -28,15 +28,15 @@ _select_base_image() {
             if [[ -f /etc/os-release ]]; then
                 local id; id=$(. /etc/os-release && echo "${ID:-ubuntu}")
                 case "$id" in
-                    ubuntu|pop|elementary|linuxmint) echo "ubuntu:22.04" ;;
+                    ubuntu|pop|elementary|linuxmint) echo "ubuntu:latest" ;;
                     debian|kali)                     echo "debian:stable" ;;
-                    *)                               echo "ubuntu:22.04" ;;
+                    *)                               echo "ubuntu:latest" ;;
                 esac
             else
-                echo "ubuntu:22.04"
+                echo "ubuntu:latest"
             fi
             ;;
-        *)      echo "ubuntu:22.04" ;;
+        *)      echo "ubuntu:latest" ;;
     esac
 }
 
@@ -137,7 +137,7 @@ EOF
     chmod +x "$script"
 
     # 桌面集成
-    has_cmd install_desktop_entry 2>/dev/null && \
+    declare -F install_desktop_entry >/dev/null && \
         install_desktop_entry "$name" "$name (容器)" "$script" "" 2>/dev/null || true
 
     ok "容器安装完成: $name"
