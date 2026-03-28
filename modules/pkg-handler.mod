@@ -124,9 +124,19 @@ _extract_rpm_pure() {
     local offset
     offset=$(LANG=C grep -aob '070707\|070701\|070702' "$rpm_file" 2>/dev/null | head -1 | cut -d: -f1)
 
-    if [[ -n "$offset" && "$offset" -gt 0 ]]; then
-        dd if="$rpm_file" bs=1 skip="$offset" 2>/dev/null > "$payload"
+    # 校验：偏移量应在 RPM lead (96字节) 之后，文件大小的 90% 以内
+    if [[ -n "$offset" && "$offset" -gt 96 ]]; then
+        local filesize; filesize=$(stat -c%s "$rpm_file" 2>/dev/null || stat -f%z "$rpm_file" 2>/dev/null)
+        if [[ -n "$filesize" && "$offset" -lt "$(( filesize * 9 / 10 ))" ]]; then
+            dd if="$rpm_file" bs=1 skip="$offset" 2>/dev/null > "$payload"
+        else
+            offset=""
+        fi
     else
+        offset=""
+    fi
+
+    if [[ ! -s "$payload" ]]; then
         # 方法2: RPM lead = 96 字节，手动跳过 signature header + main header
         # RPM header 结构: magic(4) + reserved(4) + il(4) + dl(4) = 16 字节头, 然后 il*16 条目, 然后 dl 数据
         # 用 xxd 提取字节做二进制解析
@@ -390,7 +400,7 @@ check_deps() {
         info "系统依赖检查"
         local glibc; glibc=$(ldd --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
         info "glibc: ${glibc:-unknown}"
-        for lib in libc.so libm.so libdl.so libpthread.so libz.so libssl.so; do
+        for lib in libc.so libm.so libdl.so libpthread.so libz.so libssl.so libssl.so.3 libssl.so.1.1; do
             local found=0
             if has_cmd ldconfig && ldconfig -p 2>/dev/null | grep -qi "${lib%%.*}"; then
                 found=1
@@ -489,5 +499,5 @@ EOF
 
     local out_size; out_size=$(du -sh "$output" 2>/dev/null | cut -f1)
     ok "打包完成: ${output} (${out_size}, ${file_count} 个文件)"
-    info "运行: kurali --ram ${output}"
+    info "运行: kurali i ${output}"
 }

@@ -197,6 +197,14 @@ _apply_update() {
         info "尝试 git clone..."
         if git clone --depth 1 -b "${KURALI_UPDATE_BRANCH}" "${KURALI_REPO_URL}.git" "${tmp_dir}/repo" 2>/dev/null; then
             local src_dir="${tmp_dir}/repo"
+
+            # 校验：检查核心文件是否存在
+            if [[ ! -f "${src_dir}/kuraliAll.sh" || ! -f "${src_dir}/modules/core.mod" ]]; then
+                rm -rf "$tmp_dir"
+                err "下载内容校验失败：缺少核心文件"
+                return 1
+            fi
+
             _apply_files "$src_dir"
             rm -rf "$tmp_dir"
             echo "$(date -Iseconds) update_via_clone" >> "${KURALI_HOME}/logs/network.log" 2>/dev/null || true
@@ -226,6 +234,15 @@ _apply_update() {
         return 1
     fi
 
+    # 校验 zip 文件完整性
+    if has_cmd unzip; then
+        if ! unzip -t "$archive" >/dev/null 2>&1; then
+            rm -rf "$tmp_dir"
+            err "下载的 zip 文件损坏，更新中止"
+            return 1
+        fi
+    fi
+
     info "正在解压..."
     local extract_dir="${tmp_dir}/extract"
     mkdir -p "$extract_dir"
@@ -241,6 +258,20 @@ _apply_update() {
     local src_dir
     src_dir=$(find "$extract_dir" -maxdepth 2 -name "kuraliAll.sh" -type f 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
     [[ -z "$src_dir" ]] && { rm -rf "$tmp_dir"; die "无法找到更新文件"; }
+
+    # 校验：检查核心文件和版本号
+    if [[ ! -f "${src_dir}/modules/core.mod" ]]; then
+        rm -rf "$tmp_dir"
+        err "下载内容校验失败：缺少 modules/core.mod"
+        return 1
+    fi
+    local remote_ver_check
+    remote_ver_check=$(grep '^KURALI_VERSION=' "${src_dir}/modules/core.mod" 2>/dev/null | head -1 | sed 's/.*"\(.*\)".*/\1/')
+    if [[ -z "$remote_ver_check" ]]; then
+        rm -rf "$tmp_dir"
+        err "下载内容校验失败：无法读取版本号"
+        return 1
+    fi
 
     _apply_files "$src_dir"
 

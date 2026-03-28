@@ -34,7 +34,7 @@ BIN="/usr/local/bin/kurali"
 # 从核心模块读取版本号
 VERSION=$(grep '^KURALI_VERSION=' "${SRC_DIR}/modules/core.mod" 2>/dev/null \
     | head -1 | sed 's/.*"\(.*\)".*/\1/')
-VERSION="${VERSION:-3.1.2}"
+VERSION="${VERSION:-3.1.3}"
 
 printf "\n${C_BOLD}KuraliAll v${VERSION}${C_RESET} — 安装到系统\n\n"
 

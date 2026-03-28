@@ -1,7 +1,7 @@
 # KuraliAll — 全能 Linux 包管理器
 
 > 在任意 Linux 发行版上，安装任意 Linux 发行版的离线软件包。
-> 100% 离线工作，**纯 Shell 实现**，零外部依赖（无 Python/Node/...）。
+> 离线工作，**纯 Shell 实现**，零外部依赖（无 Python/Node/...）。
 
 ## 📦 特性
 
@@ -12,7 +12,6 @@
 | **离线工作** | 不联网、不检查更新、不下载依赖 |
 | **文件备份** | 安装前自动备份被覆盖的文件 |
 | **依赖检查** | `ldd` 检查缺失的库文件 |
-| **RAM 模式** | 内存运行，退出即清理，不污染系统 |
 | **Docker 兜底** | 本地失败自动转容器 |
 | **桌面集成** | 自动生成 `.desktop` 文件 |
 | **服务管理** | systemd/OpenRC/runit/sysvinit 自启控制 |
@@ -93,7 +92,18 @@ kurali network revoke              # 撤销联网许可
 
 ## 📋 更新日志
 
-### v3.1.2 — 版本同步修复
+### v3.1.3 — 代码质量与安全修复
+
+- 🐛 修复 `pack_kurali` 提示使用不存在的 `--ram` 选项，改为正确的 `kurali i`
+- 🐛 修复头部版本号仍为 `v3.0`，统一为当前版本
+- 🔒 self-update 新增下载完整性校验：zip 文件解压测试 + 核心文件存在性检查 + 版本号验证
+- 🐛 修复 RPM 纯 Shell 解压的 cpio magic 偏移量无校验，可能误匹配导致解压失败，加范围约束
+- 🐛 修复 `check_deps` 缺少 OpenSSL 3.x 库名（`libssl.so.3` / `libssl.so.1.1`）
+- 🐛 修复 `cmd_install` 符号链接循环使用 `for $(...)` 拆词，含空格路径会出错，改用 `while IFS= read`
+- ⚡ 优化 `_fix_perms` 性能：不再逐文件 `od` 全目录扫描，限定 `*/bin/*` + `maxdepth 6`
+- 🐛 修复 `_log` 在日志文件不存在时静默丢弃日志，加 `touch` 重试
+- 🐛 修复 `post-install.mod` 的 `update-desktop-database` 路径指向 root 的 home，改用 `SUDO_USER` 推导真实用户目录
+- 🐛 修复 `set -o pipefail` 下 `head -1 \| grep -q` 的 SIGPIPE 问题，改用 `head -c 4 \| od` 检测 shebang
 
 - 🐛 修复 self-update 后 version 文件写入旧版本号（模块复制顺序错误）
 

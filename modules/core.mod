@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # core.mod — 核心：常量、日志、模块加载器
-# KuraliAll v3.0 — 纯 Shell 重构
+# KuraliAll v3.1.3 — 纯 Shell 重构
 
-KURALI_VERSION="3.1.2"
+KURALI_VERSION="3.1.3"
 KURALI_NAME="KuraliAll"
 
 # ─── 颜色 ───
@@ -36,7 +36,13 @@ _log() {
     local level="$1" color="$2"; shift 2
     local msg="$*"
     local ts; ts="$(date '+%Y-%m-%d %H:%M:%S')"
-    [[ -d "$LOG_DIR" && -w "$LOG_DIR/kuraliAll.log" ]] && echo "[$ts] [$level] $msg" >> "$LOG_DIR/kuraliAll.log" 2>/dev/null || true
+    local _logfile="${LOG_DIR}/kuraliAll.log"
+    if [[ -d "$LOG_DIR" ]]; then
+        if [[ ! -f "$_logfile" ]]; then
+            touch "$_logfile" 2>/dev/null || true
+        fi
+        [[ -w "$_logfile" ]] && echo "[$ts] [$level] $msg" >> "$_logfile" 2>/dev/null || true
+    fi
     [[ "$QUIET" -eq 0 ]] && echo -e "${color}[$level]${C_RESET} $msg" >&2
 }
 info()  { _log "INFO"  "$C_BLUE"   "$*"; }
@@ -80,23 +86,21 @@ need_root() {
 # ─── 解压后修复文件权限（dpkg-deb -x 可能丢失执行权限）───
 _fix_perms() {
     local dir="$1"
-    # 标准路径
+    # 标准路径：直接批量 chmod
     for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin"; do
         [[ -d "$d" ]] && chmod +x "$d"/* 2>/dev/null || true
     done
-    # /opt 等非标准路径
-    find "$dir/opt" -type d -name bin 2>/dev/null | while IFS= read -r d; do
+    # /opt 等非标准路径：只扫 bin 目录，避免全目录逐文件 od
+    find "$dir" -type d \( -name bin -o -name sbin \) 2>/dev/null | while IFS= read -r d; do
         chmod +x "$d"/* 2>/dev/null || true
     done
-    # 恢复 ELF 和脚本的执行权限（全目录扫描）
-    find "$dir" -type f 2>/dev/null | while IFS= read -r f; do
+    # 恢复 ELF 和脚本的执行权限（仅限含 bin 的目录，限制深度）
+    find "$dir" -path '*/bin/*' -type f -maxdepth 6 2>/dev/null | while IFS= read -r f; do
         local head_bytes
         head_bytes=$(od -A n -t x1 -N 4 "$f" 2>/dev/null | tr -d ' \n')
         if [[ "$head_bytes" == "7f454c46" ]]; then
-            # ELF 二进制
             chmod +x "$f" 2>/dev/null || true
-        elif head -1 "$f" 2>/dev/null | grep -q '^#!'; then
-            # 脚本（有 shebang）
+        elif head -c 4 "$f" 2>/dev/null | od -A n -t x1 2>/dev/null | grep -q '23 21'; then
             chmod +x "$f" 2>/dev/null || true
         fi
     done

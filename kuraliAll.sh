@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════
-#  KuraliAll v3.0 — 全能 Linux 包管理器
-#  100% 纯 Shell | 零 Python 依赖 | 离线工作 | 跨发行版
+#  KuraliAll v3.1.3 — 全能 Linux 包管理器
+#  纯 Shell | 零 Python 依赖 | 离线工作 | 跨发行版
 # ═══════════════════════════════════════════════════════
 
 set -uo pipefail
@@ -129,7 +129,8 @@ cmd_install() {
         local link_dir="/usr/local/bin"
         [[ ! -w "$link_dir" ]] && { link_dir="${HOME}/.local/bin"; mkdir -p "$link_dir" 2>/dev/null; }
         local linked=0
-        for ex in $(find_executables "$extract_dir"); do
+        while IFS= read -r ex; do
+            [[ -z "$ex" ]] && continue
             local bn; bn=$(basename "$ex")
             if [[ "$bn" == "AppRun" && "$format" == "appimage" ]]; then
                 ln -sf "$ex" "${link_dir}/${pkg_name}" 2>/dev/null || true
@@ -140,7 +141,7 @@ cmd_install() {
                 ln -sf "$ex" "${link_dir}/${bn}" 2>/dev/null || true
                 linked=$((linked+1))
             fi
-        done
+        done < <(find_executables "$extract_dir")
         [[ $linked -gt 0 ]] && info "已链接 ${linked} 个命令到 ${link_dir}"
     fi
 
