@@ -141,14 +141,21 @@ cmd_install() {
 
     # 桌面集成
     if declare -F install_desktop_entry >/dev/null; then
-        local desktop_ex; desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir" -maxdepth 2 -type f -executable 2>/dev/null | head -1)
+        local desktop_ex; desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" "$extract_dir" -maxdepth 2 -type f -executable 2>/dev/null | head -1)
         if [[ -n "$desktop_ex" ]]; then
             local icon_file=""
-            for idir in "$extract_dir/usr/share/pixmaps" "$extract_dir/usr/share/icons/hicolor/256x256/apps" \
-                        "$extract_dir/usr/share/icons/hicolor/128x128/apps" "$extract_dir/usr/share/icons/hicolor/64x64/apps"; do
-                icon_file=$(find "$idir" -name "*.png" -o -name "*.svg" -o -name "*.ico" 2>/dev/null | head -1)
+            # 按优先级搜索图标：pixmap → hicolor 各尺寸 → apps → 全局 png/svg
+            while IFS= read -r idir; do
+                icon_file=$(find "$idir" -maxdepth 2 \( -name "*.png" -o -name "*.svg" -o -name "*.ico" -o -name "*.xpm" \) 2>/dev/null | head -1)
                 [[ -n "$icon_file" ]] && break
-            done
+            done << EOF
+$extract_dir/usr/share/pixmaps
+$extract_dir/usr/share/icons/hicolor/256x256/apps
+$extract_dir/usr/share/icons/hicolor/128x128/apps
+$extract_dir/usr/share/icons/hicolor/64x64/apps
+$extract_dir/usr/share/icons/hicolor/48x48/apps
+$extract_dir/usr/share/icons
+EOF
             install_desktop_entry "$pkg_name" "$pkg_name" "$desktop_ex" "$icon_file" 2>/dev/null || true
         fi
     fi

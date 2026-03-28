@@ -1,57 +1,80 @@
 #!/usr/bin/env bash
 # desktop.mod — 桌面集成
 
+# 获取真实用户的 home（兼容 sudo 运行）
+_user_home() {
+    if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
+        eval echo "~${SUDO_USER}"
+    else
+        echo "$HOME"
+    fi
+}
+
 install_desktop_entry() {
     local name="$1" display="$2" exec_path="$3" icon="$4"
-    local ddir="${HOME}/.local/share/applications"
-    local idir="${HOME}/.local/share/icons/hicolor/256x256/apps"
+    local uh; uh=$(_user_home)
+    local ddir="${uh}/.local/share/applications"
+    local idir="${uh}/.local/share/icons/hicolor/256x256/apps"
     mkdir -p "$ddir" "$idir"
 
     local icon_dest=""
-    # 如果有图标文件则复制，否则使用系统默认图标
     if [[ -n "$icon" && -f "$icon" ]]; then
         icon_dest="${idir}/kurali-${name}.png"
         cp "$icon" "$icon_dest" 2>/dev/null || true
+        # root 运行时修复权限
+        [[ -n "$SUDO_USER" ]] && chown "$SUDO_USER:" "$icon_dest" 2>/dev/null || true
     fi
 
     local df="${ddir}/kurali-${name}.desktop"
     cat > "$df" << EOF
 [Desktop Entry]
 Name=${display}
-Comment=Installed via KuraliAll: ${name}
+Comment=KuraliAll: ${name}
 Exec=${exec_path}
 Terminal=false
 Type=Application
 Categories=Utility;
 StartupNotify=true
 EOF
-    # 如果有图标则指定图标路径，否则让系统使用默认图标
+
     if [[ -n "$icon_dest" && -f "$icon_dest" ]]; then
         echo "Icon=${icon_dest}" >> "$df"
-    else
-        # 使用通用图标或空（使用系统默认）
-        echo "Icon=application-x-executable" >> "$df"
     fi
 
-    # 刷新桌面数据库（多个方法）
-    has_cmd update-desktop-database && update-desktop-database "$ddir" 2>/dev/null || true
-    has_cmd xdg-desktop-menu && xdg-desktop-menu install "$df" 2>/dev/null || true
+    # root 运行时修复 .desktop 文件权限
+    [[ -n "$SUDO_USER" ]] && chown "$SUDO_USER:" "$df" 2>/dev/null || true
 
-    ok "桌面条目: ${name}"
+    # 刷新真实用户的桌面数据库
+    if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
+        sudo -u "$SUDO_USER" update-desktop-database "$ddir" 2>/dev/null || true
+    else
+        update-desktop-database "$ddir" 2>/dev/null || true
+    fi
+
+    ok "桌面条目: ${name} → ${df}"
 }
 
 remove_desktop_entry() {
     local name="$1"
-    local df="${HOME}/.local/share/applications/kurali-${name}.desktop"
+    local uh; uh=$(_user_home)
+    local df="${uh}/.local/share/applications/kurali-${name}.desktop"
     rm -f "$df" 2>/dev/null
-    rm -f "${HOME}/.local/share/icons/hicolor/256x256/apps/kurali-${name}.png" 2>/dev/null
-    has_cmd update-desktop-database && update-desktop-database "${HOME}/.local/share/applications" 2>/dev/null || true
-    has_cmd xdg-desktop-menu && xdg-desktop-menu uninstall "$df" 2>/dev/null || true
+    rm -f "${uh}/.local/share/icons/hicolor/256x256/apps/kurali-${name}.png" 2>/dev/null
+    if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
+        sudo -u "$SUDO_USER" update-desktop-database "${uh}/.local/share/applications" 2>/dev/null || true
+    else
+        update-desktop-database "${uh}/.local/share/applications" 2>/dev/null || true
+    fi
     debug "桌面条目已移除: $name"
 }
 
 refresh_desktop() {
-    has_cmd update-desktop-database && update-desktop-database "${HOME}/.local/share/applications" 2>/dev/null || true
-    has_cmd gtk-update-icon-cache && gtk-update-icon-cache -f "${HOME}/.local/share/icons/hicolor" 2>/dev/null || true
-    has_cmd xdg-desktop-menu && xdg-desktop-menu forceupdate 2>/dev/null || true
+    local uh; uh=$(_user_home)
+    if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
+        sudo -u "$SUDO_USER" update-desktop-database "${uh}/.local/share/applications" 2>/dev/null || true
+        sudo -u "$SUDO_USER" xdg-desktop-menu forceupdate 2>/dev/null || true
+    else
+        update-desktop-database "${uh}/.local/share/applications" 2>/dev/null || true
+        xdg-desktop-menu forceupdate 2>/dev/null || true
+    fi
 }
