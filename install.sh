@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# KuraliAll 一键安装脚本
+# KuraliAll v3.0 一键安装脚本 — 纯 Shell
 set -uo pipefail
 
 GREEN='\033[1;32m'; BLUE='\033[1;34m'; RED='\033[1;31m'; NC='\033[0m'
@@ -23,7 +23,7 @@ exec /var/lib/kuraliAll/kuraliAll.sh "$@"
 EOF
 chmod +x "$BIN"
 
-echo "2.3.0" > "$TARGET/version"
+echo "3.0.0" > "$TARGET/version"
 
 echo -e "\n${GREEN}✓ 安装完成！${NC}"
 echo -e "  入口: ${BLUE}${BIN}${NC}"

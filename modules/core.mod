@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # core.mod — 核心：常量、日志、模块加载器
-# KuraliAll v2.1
+# KuraliAll v3.0 — 纯 Shell 重构
 
-KURALI_VERSION="2.3.0"
+KURALI_VERSION="3.0.0"
 KURALI_NAME="KuraliAll"
 
 # ─── 颜色 ───
@@ -27,23 +27,19 @@ CACHE_DIR="${KURALI_HOME}/cache"
 # ─── 全局标志 ───
 MODE_RAM=0
 MODE_DOCKER=0
-MODE_SYSTEM=0       # 1=直接安装到系统路径
-MODE_BACKUP=1       # 1=安装前自动备份
+MODE_SYSTEM=0
+MODE_BACKUP=1
 VERBOSE=0
 QUIET=0
 NO_CONFIRM=0
 USER_DISTRO=""
-SAFE_MODE=0         # 安全模式，需额外确认危险操作
 
 # ─── 日志 ───
 _log() {
     local level="$1" color="$2"; shift 2
     local msg="$*"
-    local ts
-    ts="$(date '+%Y-%m-%d %H:%M:%S')"
-    if [[ -d "$LOG_DIR" ]]; then
-        echo "[$ts] [$level] $msg" >> "$LOG_DIR/kuraliAll.log" 2>/dev/null || true
-    fi
+    local ts; ts="$(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -d "$LOG_DIR" ]] && echo "[$ts] [$level] $msg" >> "$LOG_DIR/kuraliAll.log" 2>/dev/null || true
     [[ "$QUIET" -eq 0 ]] && echo -e "${color}[$level]${C_RESET} $msg" >&2
 }
 info()  { _log "INFO"  "$C_BLUE"   "$*"; }
@@ -55,31 +51,17 @@ die()   { err "$*"; exit 1; }
 
 # ─── 确认 ───
 confirm() {
-    local prompt="$1"
     [[ "$NO_CONFIRM" -eq 1 ]] && return 0
-    read -rp "$(echo -e "${C_YELLOW}[?]${C_RESET} $prompt [y/N] ")" ans
+    read -rp "$(echo -e "${C_YELLOW}[?]${C_RESET} $1 [y/N] ")" ans
     [[ "$ans" == "y" || "$ans" == "Y" ]]
 }
 
 danger_confirm() {
-    local prompt="$1"
     echo -e "${C_RED}${C_BOLD}⚠ 危险操作${C_RESET}"
-    echo -e "${C_YELLOW}  $prompt${C_RESET}"
+    echo -e "${C_YELLOW}  $1${C_RESET}"
     [[ "$NO_CONFIRM" -eq 1 ]] && return 0
     read -rp "$(echo -e "${C_RED}  请输入 'yes' 确认: ${C_RESET}")" ans
     [[ "$ans" == "yes" ]]
-}
-
-# ─── 离线检测 ───
-check_offline() {
-    if curl -s --connect-timeout 2 -o /dev/null "http://connectivity-check.ubuntu.com" 2>/dev/null ||
-       ping -c1 -W2 8.8.8.8 &>/dev/null 2>&1; then
-        debug "网络连接可用"
-        return 0
-    else
-        debug "离线环境"
-        return 1
-    fi
 }
 
 # ─── 工具检查 ───
@@ -87,49 +69,38 @@ has_cmd() { command -v "$1" &>/dev/null; }
 
 ensure_tools() {
     local missing=()
-    for tool in "$@"; do
-        has_cmd "$tool" || missing+=("$tool")
-    done
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        warn "缺少工具: ${missing[*]}"
-        return 1
-    fi
+    for tool in "$@"; do has_cmd "$tool" || missing+=("$tool"); done
+    [[ ${#missing[@]} -gt 0 ]] && { warn "缺少工具: ${missing[*]}"; return 1; }
     return 0
 }
 
 # ─── 权限 ───
 need_root() {
-    if [[ "$EUID" -ne 0 ]]; then
-        die "需要 root 权限 (sudo kuraliAll ...)"
-    fi
+    [[ "$EUID" -ne 0 ]] && die "需要 root 权限 (sudo kuraliAll ...)"
 }
 
 safe_sudo() {
-    if [[ "$EUID" -eq 0 ]]; then "$@"; else sudo "$@"; fi
+    [[ "$EUID" -eq 0 ]] && "$@" || sudo "$@"
 }
 
 # ─── 安全复制（带备份）───
 safe_copy() {
     local src="$1" dst="$2"
-    local real_dst="$dst"
-    # 确保路径以 / 开头
-    [[ "$real_dst" != /* ]] && real_dst="/$real_dst"
+    [[ "$dst" != /* ]] && dst="/$dst"
 
-    # 备份已存在的文件
-    if [[ "$MODE_BACKUP" -eq 1 && -e "$real_dst" ]]; then
-        local bak="${BACKUP_DIR}${real_dst}.$(date +%s).bak"
-        mkdir -p "$(dirname "$bak")" 2>/dev/null || safe_sudo mkdir -p "$(dirname "$bak")"
-        safe_sudo cp -a "$real_dst" "$bak" 2>/dev/null || true
-        debug "备份: $real_dst → $bak"
+    if [[ "$MODE_BACKUP" -eq 1 && -e "$dst" ]]; then
+        local bak="${BACKUP_DIR}${dst}.$(date +%s).bak"
+        safe_sudo mkdir -p "$(dirname "$bak")" 2>/dev/null || true
+        safe_sudo cp -a "$dst" "$bak" 2>/dev/null || true
+        debug "备份: $dst → $bak"
     fi
 
-    # 复制
-    safe_sudo mkdir -p "$(dirname "$real_dst")" 2>/dev/null || true
+    safe_sudo mkdir -p "$(dirname "$dst")" 2>/dev/null || true
     if [[ -d "$src" ]]; then
-        [[ -d "$real_dst" ]] || safe_sudo mkdir -p "$real_dst" 2>/dev/null || true
-        safe_sudo cp -a "$src"/* "$real_dst/" 2>/dev/null || safe_sudo cp -a "$src" "$real_dst/" 2>/dev/null || true
+        [[ -d "$dst" ]] || safe_sudo mkdir -p "$dst" 2>/dev/null || true
+        safe_sudo cp -a "$src"/* "$dst/" 2>/dev/null || safe_sudo cp -a "$src" "$dst/" 2>/dev/null || true
     else
-        safe_sudo cp -a "$src" "$real_dst" 2>/dev/null || true
+        safe_sudo cp -a "$src" "$dst" 2>/dev/null || true
     fi
 }
 
@@ -160,30 +131,28 @@ init_dirs() {
 # ─── 帮助 ───
 show_help() {
     cat << 'EOF'
-KuraliAll v2.3.0 — 全能Linux包管理器 (纯Shell版)
+KuraliAll v3.0.0 — 全能Linux包管理器 (纯Shell版)
 
 用法:  kurali <命令> [选项] [参数]
 
 安装:  sudo bash install.sh    (安装到系统后用 kurali 命令)
 
 命令:
-  i  <文件>        安装软件包 (.deb/.rpm/pacman/.apk/AppImage/tar/zip)
-  r  <包名>        卸载已安装的包
-  l                 列出已安装的包
-  s  <关键词>       搜索已安装的包
-  f  <包名>         查看包详情
-  run <文件>        内存模式运行（不安装，退出即清理）
-  pack <文件> [输出] 把任意格式打包成 .kurali 格式
-  native <包名>     用系统原生包管理器安装
-  deps [文件]       检查系统/程序依赖
-  boot enable|disable <服务>  服务自启管理
-  docker <包名>     转容器模式
-  update            检查版本更新
-  help              显示帮助
+  i  <文件>         安装软件包 (.deb/.rpm/pacman/.apk/AppImage/tar/zip)
+  r  <包名>         卸载已安装的包
+  l                  列出已安装的包
+  s  <关键词>        搜索已安装的包
+  f  <包名>          查看包详情
+  run <文件>         内存模式运行（不安装，退出即清理）
+  pack <文件> [输出]  把任意格式打包成 .kurali 格式
+  native <包名>      用系统原生包管理器安装
+  deps [文件]        检查系统/程序依赖
+  boot enable|disable|status <服务>  服务自启管理
+  update             版本信息
+  help               显示帮助
 
 选项:
   --ram             内存模式
-  --docker          失败时容器兜底
   --system          直接安装到系统路径 (⚠ 危险)
   --no-backup       不备份被覆盖的文件
   --distro=<id>     指定发行版
@@ -196,6 +165,7 @@ KuraliAll v2.3.0 — 全能Linux包管理器 (纯Shell版)
 支持: .deb  .rpm  .pkg.tar.*  .pacman  .apk  AppImage  .tar.*  .zip
 发行版: Debian/Ubuntu/RHEL/CentOS/Fedora/Arch/Alpine/openSUSE 等 20+
 
-离线支持: 完全离线工作，无需联网
+⚠ .apk = Alpine Linux 包格式，不是安卓 APK
+纯 Shell 实现，零外部依赖（Python/Node/...）
 EOF
 }

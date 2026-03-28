@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════
-#  KuraliAll — 全能 Linux 包管理器
-#  纯 Shell 实现 | 离线工作 | 跨发行版 | 多格式支持
+#  KuraliAll v3.0 — 全能 Linux 包管理器
+#  100% 纯 Shell | 零 Python 依赖 | 离线工作 | 跨发行版
 # ═══════════════════════════════════════════════════════
 
 set -uo pipefail
@@ -15,9 +15,9 @@ export KURALI_HOOKS_DIR="${_K_DIR}/hooks"
 # ─── 加载核心模块 ───
 source "${KURALI_MODULES_DIR}/core.mod"
 
-# ─── 加载功能模块（可选，失败不阻断）───
+# ─── 加载功能模块 ───
 load_module "system"      || die "核心模块 system.mod 加载失败"
-load_module "pkg-handler" || warn "pkg-handler.mod 不可用，包处理功能受限"
+load_module "pkg-handler" || die "核心模块 pkg-handler.mod 加载失败"
 load_module "ram-run"     2>/dev/null
 load_module "docker-run"  2>/dev/null
 load_module "desktop"     2>/dev/null
@@ -56,8 +56,8 @@ cmd_install() {
     # pre-install 钩子
     declare -F pre_install_hook >/dev/null && pre_install_hook "$file" "$extract_dir"
 
-    # ─── 系统安装模式 ───
     if [[ "$MODE_SYSTEM" -eq 1 ]]; then
+        # ─── 系统安装模式 ───
         need_root
         info "⚠ 直接系统安装模式"
         [[ "$MODE_BACKUP" -eq 1 ]] && info "启用文件备份 (备份在 ${BACKUP_DIR})"
@@ -90,7 +90,7 @@ cmd_install() {
         # ─── 默认：隔离目录 + 符号链接 ───
         extract_pkg "$file" "$format" "$extract_dir" || {
             rm -rf "$pkg_dir"
-            if [[ "$MODE_DOCKER" -eq 1 ]] && check_docker; then
+            if [[ "$MODE_DOCKER" -eq 1 ]] && declare -F check_docker >/dev/null && check_docker; then
                 warn "解压失败，Docker 兜底"
                 docker_fallback "$file" "$pkg_name"
                 return 0
@@ -100,7 +100,7 @@ cmd_install() {
         flatten_extract "$extract_dir"
     fi
 
-    # .kurali 格式：执行打包时附带的维护脚本
+    # .kurali 格式维护脚本
     if [[ "$format" == "kurali" ]]; then
         local tmp_scripts; tmp_scripts=$(mktemp -d)
         tar xzf "$file" -C "$tmp_scripts" scripts/ 2>/dev/null || true
@@ -140,14 +140,17 @@ cmd_install() {
     fi
 
     # 桌面集成
-    local desktop_ex; desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir" -maxdepth 2 -type f -executable 2>/dev/null | head -1)
-    if [[ -n "$desktop_ex" ]]; then
-        local icon_file=""
-        for idir in "$extract_dir/usr/share/pixmaps" "$extract_dir/usr/share/icons/hicolor/256x256/apps" "$extract_dir/usr/share/icons/hicolor/128x128/apps" "$extract_dir/usr/share/icons/hicolor/64x64/apps" "$extract_dir/usr/share/icons/hicolor/48x48/apps"; do
-            icon_file=$(find "$idir" -name "*.png" -o -name "*.svg" -o -name "*.ico" 2>/dev/null | head -1)
-            [[ -n "$icon_file" ]] && break
-        done
-        install_desktop_entry "$pkg_name" "$pkg_name" "$desktop_ex" "$icon_file" 2>/dev/null || true
+    if declare -F install_desktop_entry >/dev/null; then
+        local desktop_ex; desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir" -maxdepth 2 -type f -executable 2>/dev/null | head -1)
+        if [[ -n "$desktop_ex" ]]; then
+            local icon_file=""
+            for idir in "$extract_dir/usr/share/pixmaps" "$extract_dir/usr/share/icons/hicolor/256x256/apps" \
+                        "$extract_dir/usr/share/icons/hicolor/128x128/apps" "$extract_dir/usr/share/icons/hicolor/64x64/apps"; do
+                icon_file=$(find "$idir" -name "*.png" -o -name "*.svg" -o -name "*.ico" 2>/dev/null | head -1)
+                [[ -n "$icon_file" ]] && break
+            done
+            install_desktop_entry "$pkg_name" "$pkg_name" "$desktop_ex" "$icon_file" 2>/dev/null || true
+        fi
     fi
 
     # 保存元数据
@@ -163,7 +166,7 @@ path=${extract_dir}
 kuraliAll=${KURALI_VERSION}
 EOF
     find "$extract_dir" -type f 2>/dev/null > "${pkg_dir}/${pkg_name}.files"
-    refresh_desktop 2>/dev/null || true
+    declare -F refresh_desktop >/dev/null && refresh_desktop 2>/dev/null || true
 
     ok "安装完成: ${pkg_name} (${pkg_version:-未知版本})"
     [[ "$MODE_SYSTEM" -ne 1 ]] && info "安装路径: ${extract_dir}"
@@ -204,15 +207,14 @@ cmd_remove() {
         done < "${pkg_dir}/${name}.files"
     fi
 
-    remove_desktop_entry "$name" 2>/dev/null || true
+    declare -F remove_desktop_entry >/dev/null && remove_desktop_entry "$name" 2>/dev/null || true
     rm -rf "$pkg_dir"
     ok "已卸载: ${name}"
 }
 
 # ─── 列表 ───
 cmd_list() {
-    local entries=0
-    local header_printed=0
+    local entries=0 header_printed=0
     for dir in "$PKG_DIR"/*/; do
         [[ -d "$dir" ]] || continue
         local name; name=$(basename "$dir")
@@ -281,14 +283,13 @@ cmd_install_self() {
     mkdir -p "$target"
     cp -a "${_K_DIR}/modules" "${_K_DIR}/config" "${_K_DIR}/hooks" "${_K_DIR}/kuraliAll.sh" "$target/" 2>/dev/null || true
     chmod +x "${target}/kuraliAll.sh"
-    mkdir -p "${target}/db" "${target}/logs" "${target}/pkg" "${target}/backup" "${target}/cache"
+    mkdir -p "${target}"/{db,logs,pkg,backup,cache}
 
-    local wrapper="/usr/local/bin/kurali"
-    cat > "$wrapper" << 'EOF'
+    cat > "/usr/local/bin/kurali" << 'EOF'
 #!/bin/bash
 exec /var/lib/kuraliAll/kuraliAll.sh "$@"
 EOF
-    chmod +x "$wrapper"
+    chmod +x "/usr/local/bin/kurali"
 
     echo "$KURALI_VERSION" > "$target/version"
     ok "安装完成！使用 'kurali help' 查看帮助"
@@ -302,13 +303,6 @@ cmd_update() {
     [[ -f /var/lib/kuraliAll/version ]] && sys_ver=$(cat /var/lib/kuraliAll/version)
     echo -e "  系统: ${C_GREEN}${sys_ver:-未安装}${C_RESET}"
     echo ""
-}
-
-# ─── 打包 ───
-cmd_pack() {
-    local file="$1"; shift
-    local output="${1:-}"
-    pack_kurali "$file" "$output"
 }
 
 # ═══════════════════════════════════════════════════════
@@ -333,7 +327,7 @@ main() {
             -q|--quiet)        QUIET=1; shift ;;
             -y|--yes)          NO_CONFIRM=1; shift ;;
             -h|--help|help)    show_help; exit 0 ;;
-            -*)                die "未知选项: $1 (kurali help 查看帮助)" ;;
+            -*)                die "未知选项: $1 (kurali help)" ;;
             *)
                 if [[ -z "$cmd" ]]; then cmd="$1"; else args+=("$1"); fi
                 shift ;;
@@ -361,9 +355,7 @@ main() {
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali r <包名>"
             cmd_remove "${args[0]}"
             ;;
-        l|list|ls)
-            cmd_list
-            ;;
+        l|list|ls)       cmd_list ;;
         s|search|find)
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali s <关键词>"
             cmd_search "${args[0]}"
@@ -374,41 +366,23 @@ main() {
             ;;
         run|exec)
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali run <文件>"
-            run_in_ram "${args[0]}"
+            declare -F run_in_ram >/dev/null && run_in_ram "${args[0]}" || die "ram-run 模块不可用"
             ;;
         pack)
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali pack <文件> [输出名.kurali]"
-            cmd_pack "${args[@]}"
+            pack_kurali "${args[@]}"
             ;;
         native)
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali native <包名>"
             native_install "${args[0]}"
             ;;
-        deps|dep)
-            check_deps "${args[0]:-}"
-            ;;
+        deps|dep)        check_deps "${args[0]:-}" ;;
         boot)
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali boot <enable|disable|status> [服务名]"
-            manage_service "${args[0]}" "${args[1]:-}"
+            declare -F manage_service >/dev/null && manage_service "${args[0]}" "${args[1]:-}" || die "service 模块不可用"
             ;;
-        docker)
-            [[ ${#args[@]} -lt 1 ]] && die "用法: kurali docker <包名>"
-            local _docker_target=""
-            for f in "${PKG_DIR}/${args[0]}/"*; do
-                [[ -f "$f" ]] || continue
-                case "$f" in
-                    *.info|*.files|docker) continue ;;
-                    *) _docker_target="$f"; break ;;
-                esac
-            done
-            [[ -n "$_docker_target" ]] && docker_install "$_docker_target" "${args[0]}" || warn "包不存在"
-            ;;
-        update|ver|version)
-            cmd_update
-            ;;
-        *)
-            die "未知命令: $cmd (kurali help)"
-            ;;
+        update|ver|version)  cmd_update ;;
+        *)   die "未知命令: $cmd (kurali help)" ;;
     esac
 }
 
