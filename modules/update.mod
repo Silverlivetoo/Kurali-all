@@ -128,6 +128,34 @@ _get_remote_commit() {
     echo "${hash:0:7}"
 }
 
+# ─── 应用文件到本地 ───
+_apply_files() {
+    local src_dir="$1"
+
+    # 备份当前核心文件
+    info "备份当前版本..."
+    local backup_ts; backup_ts=$(date +%s)
+    local update_backup="${KURALI_HOME}/backup/update-${backup_ts}"
+    mkdir -p "$update_backup"
+    cp -a "${_K_DIR}/kuraliAll.sh" "$update_backup/" 2>/dev/null || true
+    [[ -d "${_K_DIR}/modules" ]] && cp -a "${_K_DIR}/modules" "$update_backup/" 2>/dev/null || true
+    [[ -d "${_K_DIR}/config" ]] && cp -a "${_K_DIR}/config" "$update_backup/" 2>/dev/null || true
+    [[ -d "${_K_DIR}/hooks" ]] && cp -a "${_K_DIR}/hooks" "$update_backup/" 2>/dev/null || true
+
+    # 应用更新
+    info "应用更新..."
+    cp -af "${src_dir}/kuraliAll.sh" "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
+    chmod +x "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
+
+    for d in modules config hooks; do
+        if [[ -d "${src_dir}/${d}" ]]; then
+            for f in "${src_dir}/${d}/"*; do
+                [[ -f "$f" ]] && cp -af "$f" "${_K_DIR}/${d}/" 2>/dev/null || true
+            done
+        fi
+    done
+}
+
 # ─── 下载并应用更新 ───
 _apply_update() {
     # 方法1: 如果在 git 仓库里，直接 git pull
@@ -142,12 +170,26 @@ _apply_update() {
         fi
     fi
 
-    # 方法2: 下载 zip
+    # 方法2: zip 或 git clone 兜底
     local tmp_dir; tmp_dir=$(mktemp -d)
     local archive="${tmp_dir}/kurali-all.zip"
 
     info "正在下载更新..."
-    # 尝试多个下载源
+
+    # 方法2a: git clone（最可靠）
+    if has_cmd git; then
+        info "尝试 git clone..."
+        if git clone --depth 1 -b "${KURALI_UPDATE_BRANCH}" "${KURALI_REPO_URL}.git" "${tmp_dir}/repo" 2>/dev/null; then
+            local src_dir="${tmp_dir}/repo"
+            _apply_files "$src_dir"
+            rm -rf "$tmp_dir"
+            echo "$(date -Iseconds) update_via_clone" >> "${KURALI_HOME}/logs/network.log" 2>/dev/null || true
+            return 0
+        fi
+        warn "git clone 失败，尝试 zip 下载..."
+    fi
+
+    # 方法2b: 下载 zip
     local -a urls=(
         "${KURALI_REPO_URL}/-/archive/${KURALI_UPDATE_BRANCH}/kurali-all-${KURALI_UPDATE_BRANCH}.zip"
         "${KURALI_REPO_URL}/repository/archive/${KURALI_UPDATE_BRANCH}"
@@ -163,7 +205,8 @@ _apply_update() {
     if [[ $download_ok -eq 0 ]]; then
         rm -rf "$tmp_dir"
         err "下载失败。请手动更新："
-        err "  cd $(basename "$_K_DIR") && git pull"
+        err "  git clone --depth 1 ${KURALI_REPO_URL}.git /tmp/kurali-update"
+        err "  sudo cp -a /tmp/kurali-update/modules /tmp/kurali-update/config /tmp/kurali-update/kuraliAll.sh /var/lib/kuraliAll/"
         return 1
     fi
 
@@ -183,57 +226,10 @@ _apply_update() {
     src_dir=$(find "$extract_dir" -maxdepth 2 -name "kuraliAll.sh" -type f 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
     [[ -z "$src_dir" ]] && { rm -rf "$tmp_dir"; die "无法找到更新文件"; }
 
-    # 备份当前核心文件
-    info "备份当前版本..."
-    local backup_ts; backup_ts=$(date +%s)
-    local update_backup="${KURALI_HOME}/backup/update-${backup_ts}"
-    mkdir -p "$update_backup"
-    cp -a "${_K_DIR}/kuraliAll.sh" "$update_backup/" 2>/dev/null || true
-    [[ -d "${_K_DIR}/modules" ]] && cp -a "${_K_DIR}/modules" "$update_backup/" 2>/dev/null || true
-    [[ -d "${_K_DIR}/config" ]] && cp -a "${_K_DIR}/config" "$update_backup/" 2>/dev/null || true
-    [[ -d "${_K_DIR}/hooks" ]] && cp -a "${_K_DIR}/hooks" "$update_backup/" 2>/dev/null || true
-
-    # 应用更新
-    info "应用更新..."
-    cp -af "${src_dir}/kuraliAll.sh" "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
-    chmod +x "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
-
-    # 更新 modules（保留用户自定义模块，只覆盖官方模块）
-    if [[ -d "${src_dir}/modules" ]]; then
-        for mod_file in "${src_dir}/modules/"*.mod; do
-            [[ -f "$mod_file" ]] || continue
-            cp -af "$mod_file" "${_K_DIR}/modules/" 2>/dev/null || true
-        done
-    fi
-
-    # 更新 config
-    if [[ -d "${src_dir}/config" ]]; then
-        for cfg_file in "${src_dir}/config/"*; do
-            [[ -f "$cfg_file" ]] || continue
-            cp -af "$cfg_file" "${_K_DIR}/config/" 2>/dev/null || true
-        done
-    fi
-
-    # 更新 hooks
-    if [[ -d "${src_dir}/hooks" ]]; then
-        for hook_file in "${src_dir}/hooks/"*; do
-            [[ -f "$hook_file" ]] || continue
-            cp -af "$hook_file" "${_K_DIR}/hooks/" 2>/dev/null || true
-        done
-    fi
-
-    # 如果是系统安装，同步更新
-    if [[ -d /var/lib/kuraliAll && -f /usr/local/bin/kurali ]]; then
-        info "同步系统安装版本..."
-        cp -af "${_K_DIR}/kuraliAll.sh" /var/lib/kuraliAll/kuraliAll.sh 2>/dev/null || true
-        chmod +x /var/lib/kuraliAll/kuraliAll.sh 2>/dev/null || true
-        [[ -d "${_K_DIR}/modules" ]] && cp -af "${_K_DIR}/modules" /var/lib/kuraliAll/ 2>/dev/null || true
-        [[ -d "${_K_DIR}/config" ]] && cp -af "${_K_DIR}/config" /var/lib/kuraliAll/ 2>/dev/null || true
-        [[ -d "${_K_DIR}/hooks" ]] && cp -af "${_K_DIR}/hooks" /var/lib/kuraliAll/ 2>/dev/null || true
-    fi
+    _apply_files "$src_dir"
 
     rm -rf "$tmp_dir"
-    echo "$(date -Iseconds) update_applied" >> "${KURALI_HOME}/logs/network.log" 2>/dev/null || true
+    echo "$(date -Iseconds) update_via_zip" >> "${KURALI_HOME}/logs/network.log" 2>/dev/null || true
 }
 
 # ─── 主命令：self-update ───
