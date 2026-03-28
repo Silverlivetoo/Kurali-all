@@ -17,8 +17,6 @@ C_GRAY='\033[0;90m'
 
 # ─── 全局路径 ───
 KURALI_HOME="${KURALI_HOME:-/var/lib/kuraliAll}"
-KURALI_BIN="${KURALI_BIN:-/usr/local/bin/kurali}"
-DB_DIR="${KURALI_HOME}/db"
 LOG_DIR="${KURALI_HOME}/logs"
 PKG_DIR="${KURALI_HOME}/pkg"
 BACKUP_DIR="${KURALI_HOME}/backup"
@@ -66,13 +64,6 @@ danger_confirm() {
 
 # ─── 工具检查 ───
 has_cmd() { command -v "$1" &>/dev/null; }
-
-ensure_tools() {
-    local missing=()
-    for tool in "$@"; do has_cmd "$tool" || missing+=("$tool"); done
-    [[ ${#missing[@]} -gt 0 ]] && { warn "缺少工具: ${missing[*]}"; return 1; }
-    return 0
-}
 
 # ─── 权限 ───
 need_root() {
@@ -124,7 +115,7 @@ load_module() {
 
 # ─── 初始化目录 ───
 init_dirs() {
-    mkdir -p "$DB_DIR" "$LOG_DIR" "$PKG_DIR" "$BACKUP_DIR" "$CACHE_DIR" 2>/dev/null || true
+    mkdir -p "$LOG_DIR" "$PKG_DIR" "$BACKUP_DIR" "$CACHE_DIR" 2>/dev/null || true
     touch "$LOG_DIR/kuraliAll.log" 2>/dev/null || true
 }
 
@@ -135,7 +126,7 @@ KuraliAll v3.0.0 — 全能Linux包管理器 (纯Shell版)
 
 用法:  kurali <命令> [选项] [参数]
 
-安装:  sudo bash install.sh    (安装到系统后用 kurali 命令)
+安装:  sudo bash kuraliAll.sh --install-self    (安装到系统后用 kurali 命令)
 
 命令:
   i  <文件>         安装软件包 (.deb/.rpm/pacman/.apk/AppImage/tar/zip)

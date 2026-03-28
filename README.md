@@ -27,8 +27,8 @@ cd kurali-all
 # 方式1：直接用
 sudo bash kuraliAll.sh i myapp.deb
 
-# 方式2：安装到系统
-sudo bash install.sh
+# 方式2：安装到系统（之后用 kurali 命令）
+sudo bash kuraliAll.sh --install-self
 kurali i myapp.rpm
 kurali i myapp.AppImage
 ```
@@ -37,8 +37,7 @@ kurali i myapp.AppImage
 
 ```
 kurali-all/
-├── kuraliAll.sh        # 主程序
-├── install.sh          # 一键安装脚本
+├── kuraliAll.sh        # 主程序（含安装功能 --install-self）
 ├── config/
 │   └── distros.txt     # 23 种发行版数据库
 ├── modules/

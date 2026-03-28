@@ -90,7 +90,7 @@ cmd_install() {
         # ─── 默认：隔离目录 + 符号链接 ───
         extract_pkg "$file" "$format" "$extract_dir" || {
             rm -rf "$pkg_dir"
-            if [[ "$MODE_DOCKER" -eq 1 ]] && declare -F check_docker >/dev/null && check_docker; then
+            if [[ "$MODE_DOCKER" -eq 1 ]] && declare -F detect_container_rt >/dev/null && detect_container_rt; then
                 warn "解压失败，Docker 兜底"
                 docker_fallback "$file" "$pkg_name"
                 return 0

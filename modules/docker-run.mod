@@ -16,8 +16,6 @@ detect_container_rt() {
     return 0
 }
 
-check_docker() { detect_container_rt; }
-
 # ─── 选择基础镜像（根据源格式 + 发行版）───
 _select_base_image() {
     local file="$1" format="$2"

@@ -58,8 +58,3 @@ native_install() {
     eval "$DISTRO_INSTALL $pkg"
 }
 
-native_remove() {
-    local pkg="$1"
-    detect_distro 2>/dev/null || true
-    eval "$DISTRO_REMOVE $pkg"
-}
