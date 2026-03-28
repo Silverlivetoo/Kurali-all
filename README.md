@@ -16,6 +16,7 @@
 | **Docker 兜底** | 本地失败自动转容器 |
 | **桌面集成** | 自动生成 `.desktop` 文件 |
 | **服务管理** | systemd/OpenRC/runit/sysvinit 自启控制 |
+| **自动提权** | 忘记 sudo 也不怕，自动重新执行 |
 | **23 种发行版** | Debian/Ubuntu/RHEL/Fedora/Arch/Alpine/openSUSE/... |
 
 ## 🚀 快速开始
@@ -25,16 +26,18 @@ git clone https://gitee.com/AY77-OP/kurali-all.git
 cd kurali-all
 
 # 方式1：直接用
-sudo bash kuraliAll.sh i myapp.deb
+bash kuraliAll.sh i myapp.deb
 
 # 方式2：安装到系统（之后用 kurali 命令）
-sudo bash kuraliAll.sh --install-self
+bash kuraliAll.sh --install-self
 kurali i myapp.rpm
 kurali i myapp.AppImage
 
 # 卸载 KuraliAll（会保留已安装的包数据）
-sudo kurali uninstall-self
+kurali uninstall-self
 ```
+
+> 所有需要 root 权限的命令会**自动提权**，无需手动加 `sudo`。
 
 ## 📁 项目结构
 
@@ -91,6 +94,13 @@ kurali network revoke              # 撤销联网许可
 - 纯 Shell 实现，不需要 Python、Node.js 等运行时
 
 ## 📋 更新日志
+
+### v3.1.0 — 自动提权与卸载
+
+- ✨ 新增自动提权：需要 root 的命令自动 `sudo` 重新执行，不用手动加了
+- ✨ 新增 `kurali uninstall-self` 卸载命令（与 `--install-self` 对称）
+- 🐛 修复 `install.sh` 版本号读取失败（grep 匹配模式错误）
+- 🐛 修复 `self-update` 缺少 `need_root` 导致自动提权不生效
 
 ### v3.0.1 — Bug 修复与新功能
 
