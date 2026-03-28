@@ -110,6 +110,24 @@ _get_remote_version() {
     echo "$remote_ver"
 }
 
+# 获取远程 commit hash
+_get_remote_commit() {
+    local tmp; tmp=$(mktemp)
+    # 用 Gitee API 获取最新 commit
+    if has_cmd curl; then
+        curl -fsSL --connect-timeout 10 --max-time 15 \
+            "https://gitee.com/api/v5/repos/AY77-OP/kurali-all/commits?sha=${KURALI_UPDATE_BRANCH}&per_page=1" \
+            2>/dev/null | grep -o '"sha":"[^"]*"' | head -1 | sed 's/"sha":"//;s/"//' > "$tmp"
+    elif has_cmd wget; then
+        wget -q --timeout=10 -O - \
+            "https://gitee.com/api/v5/repos/AY77-OP/kurali-all/commits?sha=${KURALI_UPDATE_BRANCH}&per_page=1" \
+            2>/dev/null | grep -o '"sha":"[^"]*"' | head -1 | sed 's/"sha":"//;s/"//' > "$tmp"
+    fi
+    local hash; hash=$(cat "$tmp" 2>/dev/null)
+    rm -f "$tmp"
+    echo "${hash:0:7}"
+}
+
 # ─── 下载并应用更新 ───
 _apply_update() {
     local tmp_dir; tmp_dir=$(mktemp -d)
@@ -210,14 +228,34 @@ cmd_self_update() {
 
     echo -e "  远程版本: ${C_GREEN}v${remote_ver}${C_RESET}"
 
-    # 比较版本
-    if ! _version_gt "$remote_ver" "$KURALI_VERSION"; then
+    # 比较版本号
+    local need_update=0
+    if _version_gt "$remote_ver" "$KURALI_VERSION"; then
+        need_update=1
+    else
+        # 版本号相同，比较 commit hash
+        local remote_hash local_hash
+        remote_hash=$(_get_remote_commit)
+        if [[ -n "$remote_hash" ]]; then
+            # 获取本地最新 commit（如果在 git 仓库内）
+            if [[ -d "${_K_DIR}/.git" ]] && has_cmd git; then
+                local_hash=$(cd "$_K_DIR" && git log --oneline -1 2>/dev/null | awk '{print $1}')
+            fi
+            if [[ -n "$local_hash" && "$remote_hash" != "$local_hash" ]]; then
+                echo -e "  本地 commit: ${C_GRAY}${local_hash}${C_RESET}"
+                echo -e "  远程 commit: ${C_GREEN}${remote_hash}${C_RESET}"
+                need_update=1
+            fi
+        fi
+    fi
+
+    if [[ $need_update -eq 0 ]]; then
         ok "已是最新版本 (v${KURALI_VERSION})"
         return 0
     fi
 
     echo ""
-    echo -e "  ${C_YELLOW}发现新版本: v${KURALI_VERSION} → v${remote_ver}${C_RESET}"
+    echo -e "  ${C_YELLOW}发现新版本可用${C_RESET}"
     echo ""
 
     [[ "$NO_CONFIRM" -ne 1 ]] && {
