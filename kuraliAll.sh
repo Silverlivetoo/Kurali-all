@@ -148,7 +148,7 @@ cmd_install() {
         if [[ -n "$pkg_desktop" ]]; then
             # 包内有 .desktop → 直接用，修复路径
             info "使用包内桌面文件: $(basename "$pkg_desktop")"
-            install_desktop_from_pkg "$pkg_desktop" "$pkg_name" "$extract_dir" 2>/dev/null || true
+            install_desktop_from_pkg "$pkg_desktop" "$pkg_name" "$extract_dir" || warn "桌面集成失败"
         else
             # 包内没有 .desktop → 自动生成（排除 DEBIAN 目录）
             local desktop_ex
@@ -167,7 +167,7 @@ cmd_install() {
                     icon_file=$(find "$idir" -maxdepth 2 \( -name "*.png" -o -name "*.svg" -o -name "*.xpm" \) -type f 2>/dev/null | head -1)
                     [[ -n "$icon_file" ]] && break
                 done
-                install_desktop_entry "$pkg_name" "$pkg_name" "$desktop_ex" "$icon_file" 2>/dev/null || true
+                install_desktop_entry "$pkg_name" "$pkg_name" "$desktop_ex" "$icon_file" || warn "桌面集成失败"
             fi
         fi
     fi

@@ -13,38 +13,38 @@ _user_home() {
 # 修复 .desktop 文件中的 Exec 和 Icon 路径
 _fix_desktop_paths() {
     local file="$1" extract_dir="$2"
-    # 修复 Exec= 路径（绝对路径指向包内二进制）
-    sed -i "s|^Exec=[^ ]*|Exec=${extract_dir}/usr/bin/|" "$file" 2>/dev/null || true
-    # 更精确：找到原 Exec 值，替换成沙箱路径
-    local orig_exec
+
+    # 先读取原始值（不要提前改文件！）
+    local orig_exec orig_icon
     orig_exec=$(grep -m1 '^Exec=' "$file" | sed 's/^Exec=//' | awk '{print $1}')
+    orig_icon=$(grep -m1 '^Icon=' "$file" | sed 's/^Icon=//')
+
+    # 修复 Exec=
     if [[ -n "$orig_exec" ]]; then
         local bn; bn=$(basename "$orig_exec")
         # 在包内找实际二进制
         local real_path
         real_path=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" -type f -executable -name "$bn" 2>/dev/null | head -1)
         if [[ -n "$real_path" ]]; then
-            sed -i "s|^Exec=.*${bn}|Exec=${real_path}|" "$file" 2>/dev/null || true
+            # 替换 Exec= 行里的原路径为沙箱绝对路径
+            sed -i "s|^Exec=.*${bn}|Exec=${real_path}|" "$file"
+        elif [[ "$orig_exec" != /* ]]; then
+            # 相对路径 → 加沙箱前缀
+            sed -i "s|^Exec=${orig_exec}|Exec=${extract_dir}/usr/bin/${orig_exec}|" "$file"
         else
-            # 找不到就直接用沙箱路径前缀
-            sed -i "s|^Exec=${orig_exec}|Exec=${extract_dir}${orig_exec}|" "$file" 2>/dev/null || true
+            # 绝对路径 → 加沙箱前缀
+            sed -i "s|^Exec=${orig_exec}|Exec=${extract_dir}${orig_exec}|" "$file"
         fi
     fi
 
-    # 修复 Icon= 路径（如果是相对名，在包内找对应图片）
-    local orig_icon
-    orig_icon=$(grep -m1 '^Icon=' "$file" | sed 's/^Icon=//')
+    # 修复 Icon=（如果是相对名）
     if [[ -n "$orig_icon" && "$orig_icon" != /* ]]; then
-        # 在包内 icons 目录搜索
         local found_icon=""
-        for ext in png svg xpm ico; do
-            found_icon=$(find "$extract_dir/usr/share/icons" "$extract_dir/usr/share/pixmaps" \
-                -name "${orig_icon}.${ext}" -type f 2>/dev/null | head -1)
+        for dir in "$extract_dir/usr/share/pixmaps" "$extract_dir/usr/share/icons"; do
+            found_icon=$(find "$dir" -maxdepth 5 \( -name "${orig_icon}.png" -o -name "${orig_icon}.svg" -o -name "${orig_icon}.xpm" \) -type f 2>/dev/null | head -1)
             [[ -n "$found_icon" ]] && break
         done
-        if [[ -n "$found_icon" ]]; then
-            sed -i "s|^Icon=.*|Icon=${found_icon}|" "$file" 2>/dev/null || true
-        fi
+        [[ -n "$found_icon" ]] && sed -i "s|^Icon=.*|Icon=${found_icon}|" "$file"
     fi
 }
 
@@ -78,6 +78,7 @@ EOF
 
     [[ -n "$SUDO_USER" ]] && chown "$SUDO_USER:" "$df" 2>/dev/null || true
     _refresh_db
+    ok "桌面条目: ${name}"
 }
 
 # 从包内复制 .desktop 文件并修复路径
@@ -90,22 +91,26 @@ install_desktop_from_pkg() {
     local df="${ddir}/kurali-${name}.desktop"
     cp "$pkg_desktop" "$df"
 
-    _fix_desktop_paths "$df" "$extract_dir"
-
-    # 如果 Icon= 是相对名且没被 _fix_desktop_paths 处理，复制图标文件
+    # 读取修复前的 Icon 值
     local orig_icon
     orig_icon=$(grep -m1 '^Icon=' "$df" | sed 's/^Icon=//')
+
+    # 修复 Exec 和 Icon 路径（指向沙箱目录）
+    _fix_desktop_paths "$df" "$extract_dir"
+
+    # 如果 Icon 是相对名，把图标复制到用户本地 share 并更新路径
     if [[ -n "$orig_icon" && "$orig_icon" != /* ]]; then
         local found_icon=""
         for dir in "$extract_dir/usr/share/pixmaps" "$extract_dir/usr/share/icons"; do
-            found_icon=$(find "$dir" -maxdepth 4 \( -name "${orig_icon}.png" -o -name "${orig_icon}.svg" -o -name "${orig_icon}.xpm" \) -type f 2>/dev/null | head -1)
+            found_icon=$(find "$dir" -maxdepth 5 \( -name "${orig_icon}.png" -o -name "${orig_icon}.svg" -o -name "${orig_icon}.xpm" \) -type f 2>/dev/null | head -1)
             [[ -n "$found_icon" ]] && break
         done
         if [[ -n "$found_icon" ]]; then
             local idir="${uh}/.local/share/icons/hicolor/256x256/apps"
             mkdir -p "$idir"
-            local icon_dest="${idir}/kurali-${name}.$(echo "$found_icon" | sed 's/.*\.//')"
-            cp "$found_icon" "$icon_dest" 2>/dev/null || true
+            local ext="${found_icon##*.}"
+            local icon_dest="${idir}/kurali-${name}.${ext}"
+            cp "$found_icon" "$icon_dest"
             [[ -n "$SUDO_USER" ]] && chown "$SUDO_USER:" "$icon_dest" 2>/dev/null || true
             sed -i "s|^Icon=.*|Icon=${icon_dest}|" "$df"
         fi
@@ -113,6 +118,7 @@ install_desktop_from_pkg() {
 
     [[ -n "$SUDO_USER" ]] && chown "$SUDO_USER:" "$df" 2>/dev/null || true
     _refresh_db
+    ok "桌面条目: ${name}"
 }
 
 remove_desktop_entry() {
