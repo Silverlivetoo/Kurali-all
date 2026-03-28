@@ -360,8 +360,18 @@ flatten_extract() {
 # 查找可执行文件
 find_executables() {
     local dir="$1"
+    # 先修复常见 bin 目录的执行权限（dpkg-deb -x 可能丢失权限）
+    for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin"; do
+        [[ -d "$d" ]] && chmod +x "$d"/* 2>/dev/null || true
+    done
     find "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin" \
-        "$dir" -maxdepth 2 -type f -executable 2>/dev/null | sort -u
+        -maxdepth 1 -type f \( -executable -o -name "*.sh" -o -name "*.py" -o -name "*.bin" \) 2>/dev/null | sort -u
+    # 兜底：不加 -executable 限制，找到所有普通文件
+    if [[ $? -ne 0 || -z "$(find "$dir/usr/bin" "$dir/bin" -maxdepth 1 -type f -executable 2>/dev/null | head -1)" ]]; then
+        for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin"; do
+            [[ -d "$d" ]] && find "$d" -maxdepth 1 -type f 2>/dev/null
+        done | sort -u
+    fi
 }
 
 # ═══════════════════════════════════════════════════════

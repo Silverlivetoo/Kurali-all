@@ -70,6 +70,27 @@ need_root() {
     [[ "$EUID" -ne 0 ]] && die "需要 root 权限 (sudo kuraliAll ...)"
 }
 
+# ─── 解压后修复文件权限（dpkg-deb -x 可能丢失执行权限）───
+_fix_perms() {
+    local dir="$1"
+    for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin"; do
+        [[ -d "$d" ]] && chmod +x "$d"/* 2>/dev/null || true
+    done
+    # 恢复 ELF 和脚本的执行权限
+    find "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin" \
+        -maxdepth 1 -type f 2>/dev/null | while IFS= read -r f; do
+        local head_bytes
+        head_bytes=$(xxd -l 4 -p "$f" 2>/dev/null)
+        if [[ "$head_bytes" == "7f454c46" ]]; then
+            # ELF 二进制
+            chmod +x "$f" 2>/dev/null || true
+        elif head -1 "$f" 2>/dev/null | grep -q '^#!'; then
+            # 脚本（有 shebang）
+            chmod +x "$f" 2>/dev/null || true
+        fi
+    done
+}
+
 safe_sudo() {
     [[ "$EUID" -eq 0 ]] && "$@" || sudo "$@"
 }

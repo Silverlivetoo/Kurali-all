@@ -66,6 +66,7 @@ cmd_install() {
 
         extract_pkg "$file" "$format" "$extract_dir" || die "解压失败"
         flatten_extract "$extract_dir"
+        _fix_perms "$extract_dir"
 
         # 执行维护脚本
         for script in preinst postinst; do
@@ -99,6 +100,7 @@ cmd_install() {
             die "解压失败: $file"
         }
         flatten_extract "$extract_dir"
+        _fix_perms "$extract_dir"
     fi
 
     # .kurali 格式维护脚本

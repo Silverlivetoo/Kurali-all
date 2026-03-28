@@ -14,6 +14,11 @@ _user_home() {
 _fix_desktop_paths() {
     local file="$1" extract_dir="$2"
 
+    # 先修复 bin 目录权限（dpkg-deb -x 可能丢失）
+    for d in "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" "$extract_dir/usr/sbin" "$extract_dir/sbin"; do
+        [[ -d "$d" ]] && chmod +x "$d"/* 2>/dev/null || true
+    done
+
     # 先读取原始值（不要提前改文件！）
     local orig_exec orig_icon
     orig_exec=$(grep -m1 '^Exec=' "$file" | sed 's/^Exec=//' | awk '{print $1}')
@@ -22,18 +27,24 @@ _fix_desktop_paths() {
     # 修复 Exec=
     if [[ -n "$orig_exec" ]]; then
         local bn; bn=$(basename "$orig_exec")
-        # 在包内找实际二进制
+        # 在包内找实际二进制（先找可执行的，再找同名文件）
         local real_path
-        real_path=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" -type f -executable -name "$bn" 2>/dev/null | head -1)
+        real_path=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" "$extract_dir/usr/sbin" "$extract_dir/sbin" \
+            -maxdepth 1 -type f -executable -name "$bn" 2>/dev/null | head -1)
+        # 兜底：不限制 -executable
+        [[ -z "$real_path" ]] && real_path=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" \
+            -maxdepth 1 -type f -name "$bn" 2>/dev/null | head -1)
         if [[ -n "$real_path" ]]; then
-            # 替换 Exec= 行里的原路径为沙箱绝对路径
+            chmod +x "$real_path" 2>/dev/null || true
             sed -i "s|^Exec=.*${bn}|Exec=${real_path}|" "$file"
         elif [[ "$orig_exec" != /* ]]; then
-            # 相对路径 → 加沙箱前缀
-            sed -i "s|^Exec=${orig_exec}|Exec=${extract_dir}/usr/bin/${orig_exec}|" "$file"
+            local search_path="${extract_dir}/usr/bin/${orig_exec}"
+            [[ -f "$search_path" ]] && chmod +x "$search_path" 2>/dev/null || true
+            sed -i "s|^Exec=${orig_exec}|Exec=${search_path}|" "$file"
         else
-            # 绝对路径 → 加沙箱前缀
-            sed -i "s|^Exec=${orig_exec}|Exec=${extract_dir}${orig_exec}|" "$file"
+            local search_path="${extract_dir}${orig_exec}"
+            [[ -f "$search_path" ]] && chmod +x "$search_path" 2>/dev/null || true
+            sed -i "s|^Exec=${orig_exec}|Exec=${search_path}|" "$file"
         fi
     fi
 
