@@ -147,10 +147,20 @@ _apply_files() {
     cp -af "${src_dir}/kuraliAll.sh" "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
     chmod +x "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
 
-    # 更新版本标记
+    # 更新版本标记 + commit hash
     local new_ver
     new_ver=$(grep '^KURALI_VERSION=' "${_K_DIR}/modules/core.mod" 2>/dev/null | head -1 | sed 's/.*"\(.*\)".*/\1/')
     [[ -n "$new_ver" ]] && echo "$new_ver" > "${_K_DIR}/version"
+
+    # 从源目录的 git 或远程获取当前 commit hash
+    local applied_hash=""
+    if [[ -d "${src_dir}/.git" ]] && has_cmd git; then
+        applied_hash=$(cd "$src_dir" && git log --oneline -1 2>/dev/null | awk '{print $1}')
+    fi
+    if [[ -z "$applied_hash" ]]; then
+        applied_hash=$(_get_remote_commit 2>/dev/null) || true
+    fi
+    [[ -n "$applied_hash" ]] && echo "$applied_hash" > "${_K_DIR}/commit"
 
     for d in modules config hooks; do
         if [[ -d "${src_dir}/${d}" ]]; then
@@ -267,8 +277,11 @@ cmd_self_update() {
         local remote_hash="" local_hash=""
         remote_hash=$(_get_remote_commit)
         if [[ -n "$remote_hash" ]]; then
-            # 获取本地最新 commit（如果在 git 仓库内）
-            if [[ -d "${_K_DIR}/.git" ]] && has_cmd git; then
+            # 优先从 commit 文件读取（非 git 安装）
+            if [[ -f "${_K_DIR}/commit" ]]; then
+                local_hash=$(cat "${_K_DIR}/commit" 2>/dev/null)
+            # 其次从 git 仓库获取
+            elif [[ -d "${_K_DIR}/.git" ]] && has_cmd git; then
                 local_hash=$(cd "$_K_DIR" && git log --oneline -1 2>/dev/null | awk '{print $1}')
             fi
             if [[ -n "$local_hash" && "$remote_hash" != "$local_hash" ]]; then

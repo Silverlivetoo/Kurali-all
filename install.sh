@@ -50,6 +50,11 @@ chmod +x "${TARGET}/kuraliAll.sh"
 # ─── 写版本标记 ───
 echo "$VERSION" > "${TARGET}/version"
 
+# 保存 commit hash（供 self-update 比较）
+if [[ -d "${SRC_DIR}/.git" ]] && command -v git &>/dev/null; then
+    git -C "$SRC_DIR" log --oneline -1 2>/dev/null | awk '{print $1}' > "${TARGET}/commit"
+fi
+
 # ─── 写入口包装脚本 ───
 _info "创建命令 ${BIN}..."
 cat > "$BIN" << 'WRAPPER'

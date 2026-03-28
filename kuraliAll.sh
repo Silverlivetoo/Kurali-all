@@ -322,6 +322,11 @@ EOF
     chmod +x "/usr/local/bin/kurali"
 
     echo "$KURALI_VERSION" > "$target/version"
+
+    # 保存 commit hash
+    if [[ -d "${_K_DIR}/.git" ]] && has_cmd git; then
+        git -C "$_K_DIR" log --oneline -1 2>/dev/null | awk '{print $1}' > "$target/commit"
+    fi
     ok "安装完成！使用 'kurali help' 查看帮助"
 }
 
@@ -371,9 +376,11 @@ cmd_uninstall_self() {
 cmd_version() {
     echo -e "\n${C_BOLD}KuraliAll 版本信息:${C_RESET}"
     echo -e "  当前: ${C_GREEN}v${KURALI_VERSION}${C_RESET}"
-    local sys_ver=""
+    local sys_ver="" sys_commit=""
     [[ -f /var/lib/kuraliAll/version ]] && sys_ver=$(cat /var/lib/kuraliAll/version)
+    [[ -f /var/lib/kuraliAll/commit ]] && sys_commit=$(cat /var/lib/kuraliAll/commit)
     echo -e "  系统: ${C_GREEN}${sys_ver:-未安装}${C_RESET}"
+    [[ -n "$sys_commit" ]] && echo -e "  commit: ${C_GRAY}${sys_commit}${C_RESET}"
     echo ""
 }
 
