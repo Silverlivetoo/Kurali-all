@@ -93,6 +93,18 @@ kurali network revoke              # 撤销联网许可
 
 ## 📋 更新日志
 
+### v3.1.1 — 稳定性修复
+
+- 🐛 修复 `find_executables` 兜底逻辑失效（`$?` 检查的是 sort 不是 find）
+- 🐛 修复 `native_install` 使用 `eval` 存在命令注入风险，改用数组展开
+- 🐛 修复 `_fix_perms` 依赖 `xxd`，Alpine 等最小化系统缺失导致权限修复静默失败
+- 🐛 修复 `boot enable/disable` 缺少 `need_root`，不自动提权
+- 🐛 修复 `_user_home` 使用 `eval echo` 不可靠，改用 `getent passwd`
+- 🐛 修复 QUIET 模式下错误信息被吞掉，`err`/`die` 改为始终输出
+- 🐛 修复 `grep -E` 使用 `\s` 在 busybox 下不兼容，改用 POSIX `[[:space:]]`
+- 🐛 移除无用的 RAM 模式
+- ✨ Docker 模式支持 GUI 应用（X11/Wayland 转发 + NVIDIA GPU）
+
 ### v3.1.0 — 自动提权与卸载
 
 - ✨ 新增自动提权：需要 root 的命令自动 `sudo` 重新执行，不用手动加了
