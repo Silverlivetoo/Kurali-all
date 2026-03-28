@@ -41,6 +41,7 @@ printf "\n${C_BOLD}KuraliAll v${VERSION}${C_RESET} — 安装到系统\n\n"
 # ─── 安装文件 ───
 _info "复制文件到 ${TARGET}..."
 mkdir -p "${TARGET}"/{db,logs,pkg,backup,cache}
+chmod 777 "${TARGET}/logs" "${TARGET}/cache" 2>/dev/null || true
 cp -a "${SRC_DIR}/modules" "${SRC_DIR}/config" "${SRC_DIR}/hooks" \
        "${SRC_DIR}/kuraliAll.sh" "${TARGET}/" \
     || _die "文件复制失败"

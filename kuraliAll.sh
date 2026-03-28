@@ -313,6 +313,7 @@ cmd_install_self() {
     cp -a "${_K_DIR}/modules" "${_K_DIR}/config" "${_K_DIR}/hooks" "${_K_DIR}/kuraliAll.sh" "$target/" 2>/dev/null || true
     chmod +x "${target}/kuraliAll.sh"
     mkdir -p "${target}"/{db,logs,pkg,backup,cache}
+    chmod 777 "${target}/logs" "${target}/cache" 2>/dev/null || true
 
     cat > "/usr/local/bin/kurali" << 'EOF'
 #!/bin/bash

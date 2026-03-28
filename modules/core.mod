@@ -37,7 +37,7 @@ _log() {
     local level="$1" color="$2"; shift 2
     local msg="$*"
     local ts; ts="$(date '+%Y-%m-%d %H:%M:%S')"
-    [[ -d "$LOG_DIR" ]] && echo "[$ts] [$level] $msg" >> "$LOG_DIR/kuraliAll.log" 2>/dev/null || true
+    [[ -d "$LOG_DIR" && -w "$LOG_DIR/kuraliAll.log" ]] && echo "[$ts] [$level] $msg" >> "$LOG_DIR/kuraliAll.log" 2>/dev/null || true
     [[ "$QUIET" -eq 0 ]] && echo -e "${color}[$level]${C_RESET} $msg" >&2
 }
 info()  { _log "INFO"  "$C_BLUE"   "$*"; }
