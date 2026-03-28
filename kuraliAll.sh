@@ -22,6 +22,7 @@ load_module "ram-run"     2>/dev/null
 load_module "docker-run"  2>/dev/null
 load_module "desktop"     2>/dev/null
 load_module "service"     2>/dev/null
+load_module "update"      2>/dev/null
 
 # ─── 加载钩子 ───
 [[ -f "${KURALI_HOOKS_DIR}/pre-install.mod" ]]  && source "${KURALI_HOOKS_DIR}/pre-install.mod"
@@ -314,7 +315,7 @@ EOF
 }
 
 # ─── 版本信息 ───
-cmd_update() {
+cmd_version() {
     echo -e "\n${C_BOLD}KuraliAll 版本信息:${C_RESET}"
     echo -e "  当前: ${C_GREEN}v${KURALI_VERSION}${C_RESET}"
     local sys_ver=""
@@ -399,7 +400,13 @@ main() {
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali boot <enable|disable|status> [服务名]"
             declare -F manage_service >/dev/null && manage_service "${args[0]}" "${args[1]:-}" || die "service 模块不可用"
             ;;
-        update|ver|version)  cmd_update ;;
+        update|ver|version)   cmd_version ;;
+        self-update|upgrade)
+            declare -F cmd_self_update >/dev/null && cmd_self_update || die "update 模块不可用"
+            ;;
+        network)
+            declare -F cmd_network >/dev/null && cmd_network "${args[@]}" || die "update 模块不可用"
+            ;;
         *)   die "未知命令: $cmd (kurali help)" ;;
     esac
 }

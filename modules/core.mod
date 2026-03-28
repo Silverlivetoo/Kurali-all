@@ -140,6 +140,8 @@ KuraliAll v3.0.0 — 全能Linux包管理器 (纯Shell版)
   deps [文件]        检查系统/程序依赖
   boot enable|disable|status <服务>  服务自启管理
   update             版本信息
+  self-update        联网检查并更新 KuraliAll
+  network status|grant|revoke  联网许可管理
   help               显示帮助
 
 选项:
