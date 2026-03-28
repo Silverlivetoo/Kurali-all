@@ -20,6 +20,7 @@ load_module "ram-run"   2>/dev/null
 load_module "docker-run" 2>/dev/null
 load_module "desktop"   2>/dev/null
 load_module "service"   2>/dev/null
+load_module "api"       2>/dev/null
 
 # ─── 加载钩子 ───
 [[ -f "${KURALI_HOOKS_DIR}/pre-install.mod" ]]  && source "${KURALI_HOOKS_DIR}/pre-install.mod"
@@ -410,6 +411,10 @@ main() {
                 esac
             done
             [[ -n "$_docker_target" ]] && docker_install "$_docker_target" "${args[0]}" || warn "包不存在"
+            ;;
+        api)
+            [[ ${#args[@]} -lt 1 ]] && die "用法: kurali api <list|install|info|deps> [参数]"
+            cmd_api "${args[0]}" "${args[1]:-}"
             ;;
         update|ver|version)
             cmd_update

@@ -15,9 +15,8 @@
 11. [服务管理](#11-服务管理)
 12. [原生包管理器](#12-原生包管理器)
 13. [发行版指定](#13-发行版指定)
-14. [Python 版](#14-python-版)
-16. [GUI 版](#15-gui-版)
-17. [配置与环境变量](#16-配置与环境变量)
+14. [WebUI 版本](#14-webui-版)
+15. [配置与环境变量](#15-配置与环境变量)
 18. [故障排除](#17-故障排除)
 
 ---
@@ -317,43 +316,26 @@ kurali i myapp-1.0.kurali
 
 ---
 
-## 15. Python 版
+## 15. WebUI 版本
 
-需要 Python 3.6+：
-
-```bash
-python3 kuraliAll.py i <文件>
-python3 kuraliAll.py l
-python3 kuraliAll.py r <包名>
-python3 kuraliAll.py deps <文件>
-python3 kuraliAll.py run <文件>
-```
-
-功能与 Shell 版完全等价。
-
----
-
-## 16. GUI 版
-
-终端图形界面，无需 X11/tkinter：
+浏览器图形界面，零外部依赖：
 
 ```bash
-python3 kuraliAll-gui.py
+python3 kuraliAll-webui.py
+# 浏览器打开 http://localhost:8080
 ```
-
-**操作：**
-- ↑↓ 键导航
-- Enter 确认选择
-- r 刷新列表
-- q 退出
 
 **功能：**
-- 安装/卸载软件包
-- 查看已安装列表
-- 搜索软件包
-- 依赖检查（含系统检查）
-- 查看包详情
-- RAM 模式运行
+- 📂 **拖拽安装** — 将软件包文件拖到浏览器即可一键安装
+- 🛡️ **三种模式** — 安全模式（沙箱）、系统安装、RAM 模式
+- 📋 **包管理** — 查看已安装列表、搜索、查看详情、一键卸载
+- 🖥️ **实时日志** — 安装/卸载过程实时输出
+- 🔍 **依赖检查** — 系统依赖和程序依赖检查
+- 💾 **备份管理** — 查看和管理安装前的文件备份
+- 📝 **系统日志** — 完整操作记录
+- 📦 **原生安装** — 调用 apt/yum/dnf/pacman 等
+- 📦 **打包工具** — 在线将任意格式打包为 .kurali
+- 📊 **系统信息** — 发行版、内核、磁盘使用一览
 
 ---
 
@@ -389,10 +371,10 @@ v2.1.2 已修复。旧版本安装后 `kurali` 命令报错是因为 `kuraliAll.
 sudo chmod +x /var/lib/kuraliAll/kuraliAll.sh
 ```
 
-### Python 版 deps 显示全部 ✗
+### Shell 版 deps 显示全部 ✗
 v2.1.2 已修复。旧版本在 `ldconfig` 不在 PATH 时会误报，更新后自动回退到常见库路径搜索。
 
-### Python 版安装 deb 包名不正确
+### Shell 版安装 deb 包名不正确
 v2.1.2 已修复。旧版本用文件名推断包名（如 `myapp_1.0_amd64.deb` → `myapp_1`），现在优先用 `dpkg-deb -f` 提取真实的 Package 字段。
 
 ### 程序运行报错

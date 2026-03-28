@@ -178,6 +178,7 @@ KuraliAll v2.2.0 — 全能Linux包管理器
   deps [文件]       检查系统/程序依赖
   boot enable|disable <服务>  服务自启管理
   docker <包名>     转容器模式
+  api <动作> [参数] JSON API接口（WebUI使用）
   update            检查版本更新
   help              显示帮助
 

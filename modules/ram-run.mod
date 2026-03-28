@@ -55,8 +55,8 @@ run_in_ram() {
     extract_pkg "$file" "$fmt" "$pkg" || die "解压失败"
     flatten_extract "$pkg"
 
-    export LD_LIBRARY_PATH="${pkg}/usr/lib:${pkg}/usr/lib64:${pkg}/lib:${pkg}/lib64:${LD_LIBRARY_PATH}"
-    export PATH="${pkg}/usr/bin:${pkg}/bin:${pkg}/usr/local/bin:${pkg}:${PATH}"
+    export LD_LIBRARY_PATH="${pkg}/usr/lib:${pkg}/usr/lib64:${pkg}/lib:${pkg}/lib64:${LD_LIBRARY_PATH:-}"
+    export PATH="${pkg}/usr/bin:${pkg}/bin:${pkg}/usr/local/bin:${pkg}:${PATH:-}"
 
     local exes; exes=$(find "$pkg" -maxdepth 3 -type f -executable 2>/dev/null | sort -u | head -20)
 

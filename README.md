@@ -46,8 +46,6 @@ sudo python3 kuraliAll-webui.py
 ```
 KuraliAll/
 ├── kuraliAll.sh        # Shell 版主程序（推荐）
-├── kuraliAll.py        # Python 版（等价功能）
-├── kuraliAll-gui.py    # 终端 GUI 版（curses）
 ├── kuraliAll-webui.py  # WebUI 版（浏览器图形界面）🆕
 ├── install.sh          # 一键安装脚本
 ├── README.md           # 本文件
@@ -97,13 +95,11 @@ python3 kuraliAll-webui.py -p 9090 # 自定义端口
 python3 kuraliAll-webui.py -h 127.0.0.1 # 仅本地访问
 ```
 
-## 🖥️ 四个版本
+## 🖥️ 两个版本
 
 | 版本 | 文件 | 特点 |
 |------|------|------|
 | **Shell** | `kuraliAll.sh` | 推荐，零依赖，任何 Linux 都能跑 |
-| **Python** | `kuraliAll.py` | 需要 Python 3.6+，功能等价 |
-| **GUI** | `kuraliAll-gui.py` | 终端图形界面（curses），无需 X11 |
 | **WebUI** 🆕 | `kuraliAll-webui.py` | 浏览器图形界面，拖拽安装、实时日志、零外部依赖 |
 
 ### WebUI 功能一览
@@ -162,8 +158,8 @@ Alpine · openSUSE · SLES · Void · Solus · NixOS · Gentoo
 | 1 | install.sh | 🔴 高 | 安装后添加 `chmod +x kuraliAll.sh`，修复 Permission denied |
 | 2 | install.sh | 🟡 中 | 版本号从 `2.0.0` 同步为 `2.1.0` |
 | 3 | kuraliAll.sh | 🟡 中 | `--install-self` 同样添加 `chmod +x` |
-| 4 | kuraliAll.py | 🟡 中 | `deps` 命令在 `ldconfig` 不可用时回退到常见库路径搜索 |
-| 5 | kuraliAll.py | 🟡 中 | deb/rpm 包名提取改用 `dpkg-deb -f` / `rpm -qp` |
+| 4 | pkg-handler.mod | 🟡 中 | `deps` 命令在 `ldconfig` 不可用时回退到常见库路径搜索 |
+| 5 | pkg-handler.mod | 🟡 中 | deb/rpm 包名提取改用 `dpkg-deb -f` / `rpm -qp` |
 
 ### v2.1.1 — 备用方案 + Docker 适配
 
@@ -179,10 +175,9 @@ Alpine · openSUSE · SLES · Void · Solus · NixOS · Gentoo
 
 | # | 类型 | 内容 |
 |---|------|------|
-| 1 | 🆕 功能 | Python 版支持 .apk 格式（Alpine Linux 包），含 .PKGINFO 元数据解析 |
-| 2 | 🆕 功能 | GUI 版支持 .apk 格式 |
-| 3 | 🆕 功能 | Python 版安装时自动提取版本号（deb: dpkg-deb, apk: .PKGINFO） |
-| 4 | 📝 文档 | 三个版本的帮助文本统一添加 .apk 格式说明 |
+| 1 | 🆕 功能 | Shell 版支持 .apk 格式（Alpine Linux 包），含 .PKGINFO 元数据解析 |
+| 2 | 🆕 功能 | Shell 版安装时自动提取版本号（deb: dpkg-deb, apk: .PKGINFO） |
+| 3 | 📝 文档 | 版本帮助文本添加 .apk 格式说明 |
 
 ### v2.0 — 核心重写
 
@@ -206,6 +201,22 @@ Alpine · openSUSE · SLES · Void · Solus · NixOS · Gentoo
 | figlet 2.2.5 | .apk (Alpine) | 118K | 65 | ✅ |
 
 > ⚠️ `.apk` 是 **Alpine Linux** 的包格式（Alpine Package Keeper），**不是安卓 APK**。
+
+## 🔧 重构状态
+
+此项目已重构，只保留两个主要版本：
+
+### 当前状态
+1. ✅ 已删除冗余版本：`kuraliAll.py` 和 `kuraliAll-gui.py`
+2. ✅ 保留核心版本：`kuraliAll.sh` (Shell CLI) 和 `kuraliAll-webui.py` (Python WebUI)
+3. ✅ 所有已知bug已在当前代码中修复
+4. ✅ 简化项目结构，更易于维护
+
+### 下一步计划
+1. 🔄 WebUI调用Shell版本，统一代码逻辑
+2. 🔄 优化模块加载机制
+3. 🔄 增强错误处理统一性
+4. 🔄 添加更多自动化测试
 
 ## 📄 许可
 
