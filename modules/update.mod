@@ -130,14 +130,42 @@ _get_remote_commit() {
 
 # ─── 下载并应用更新 ───
 _apply_update() {
+    # 方法1: 如果在 git 仓库里，直接 git pull
+    if [[ -d "${_K_DIR}/.git" ]] && has_cmd git; then
+        info "通过 git 拉取更新..."
+        if (cd "$_K_DIR" && git pull --ff-only origin "${KURALI_UPDATE_BRANCH}" 2>/dev/null); then
+            chmod +x "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
+            echo "$(date -Iseconds) update_via_git" >> "${KURALI_HOME}/logs/network.log" 2>/dev/null || true
+            return 0
+        else
+            warn "git pull 失败，尝试 zip 下载..."
+        fi
+    fi
+
+    # 方法2: 下载 zip
     local tmp_dir; tmp_dir=$(mktemp -d)
     local archive="${tmp_dir}/kurali-all.zip"
 
     info "正在下载更新..."
-    _fetch "${KURALI_REPO_URL}/-/archive/${KURALI_UPDATE_BRANCH}/kurali-all-${KURALI_UPDATE_BRANCH}.zip" "$archive" || {
+    # 尝试多个下载源
+    local -a urls=(
+        "${KURALI_REPO_URL}/-/archive/${KURALI_UPDATE_BRANCH}/kurali-all-${KURALI_UPDATE_BRANCH}.zip"
+        "${KURALI_REPO_URL}/repository/archive/${KURALI_UPDATE_BRANCH}"
+    )
+    local download_ok=0
+    for url in "${urls[@]}"; do
+        if _fetch "$url" "$archive" 2>/dev/null && [[ -s "$archive" ]]; then
+            download_ok=1
+            break
+        fi
+    done
+
+    if [[ $download_ok -eq 0 ]]; then
         rm -rf "$tmp_dir"
-        die "下载失败，请检查网络连接"
-    }
+        err "下载失败。请手动更新："
+        err "  cd $(basename "$_K_DIR") && git pull"
+        return 1
+    fi
 
     info "正在解压..."
     local extract_dir="${tmp_dir}/extract"
