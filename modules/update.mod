@@ -258,7 +258,7 @@ cmd_self_update() {
         need_update=1
     else
         # 版本号相同，比较 commit hash
-        local remote_hash local_hash
+        local remote_hash="" local_hash=""
         remote_hash=$(_get_remote_commit)
         if [[ -n "$remote_hash" ]]; then
             # 获取本地最新 commit（如果在 git 仓库内）
