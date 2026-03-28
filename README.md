@@ -93,6 +93,10 @@ kurali network revoke              # 撤销联网许可
 
 ## 📋 更新日志
 
+### v3.1.2 — 版本同步修复
+
+- 🐛 修复 self-update 后 version 文件写入旧版本号（模块复制顺序错误）
+
 ### v3.1.1 — 稳定性修复
 
 - 🐛 修复 `find_executables` 兜底逻辑失效（`$?` 检查的是 sort 不是 find）
