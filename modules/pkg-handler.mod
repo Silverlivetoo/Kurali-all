@@ -361,15 +361,15 @@ flatten_extract() {
 find_executables() {
     local dir="$1"
     # 先修复常见 bin 目录的执行权限（dpkg-deb -x 可能丢失权限）
-    for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin"; do
+    for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin" "$dir/opt"/*/bin; do
         [[ -d "$d" ]] && chmod +x "$d"/* 2>/dev/null || true
     done
-    find "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin" \
-        -maxdepth 1 -type f \( -executable -o -name "*.sh" -o -name "*.py" -o -name "*.bin" \) 2>/dev/null | sort -u
-    # 兜底：不加 -executable 限制，找到所有普通文件
-    if [[ $? -ne 0 || -z "$(find "$dir/usr/bin" "$dir/bin" -maxdepth 1 -type f -executable 2>/dev/null | head -1)" ]]; then
-        for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin"; do
-            [[ -d "$d" ]] && find "$d" -maxdepth 1 -type f 2>/dev/null
+    # 查找所有可执行文件（包括 /opt 等非标准路径）
+    find "$dir" -type f -executable 2>/dev/null | sort -u
+    # 兜底：没有任何可执行文件时，列出 bin 目录下所有文件
+    if [[ $? -ne 0 || -z "$(find "$dir" -maxdepth 4 -type f -executable 2>/dev/null | head -1)" ]]; then
+        for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/opt"; do
+            [[ -d "$d" ]] && find "$d" -maxdepth 3 -type f 2>/dev/null
         done | sort -u
     fi
 }

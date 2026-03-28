@@ -73,12 +73,16 @@ need_root() {
 # ─── 解压后修复文件权限（dpkg-deb -x 可能丢失执行权限）───
 _fix_perms() {
     local dir="$1"
+    # 标准路径
     for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin"; do
         [[ -d "$d" ]] && chmod +x "$d"/* 2>/dev/null || true
     done
-    # 恢复 ELF 和脚本的执行权限
-    find "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/usr/sbin" "$dir/sbin" \
-        -maxdepth 1 -type f 2>/dev/null | while IFS= read -r f; do
+    # /opt 等非标准路径
+    find "$dir/opt" -type d -name bin 2>/dev/null | while IFS= read -r d; do
+        chmod +x "$d"/* 2>/dev/null || true
+    done
+    # 恢复 ELF 和脚本的执行权限（全目录扫描）
+    find "$dir" -type f 2>/dev/null | while IFS= read -r f; do
         local head_bytes
         head_bytes=$(xxd -l 4 -p "$f" 2>/dev/null)
         if [[ "$head_bytes" == "7f454c46" ]]; then

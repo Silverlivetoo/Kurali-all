@@ -27,16 +27,14 @@ _fix_desktop_paths() {
     # 修复 Exec=
     if [[ -n "$orig_exec" ]]; then
         local bn; bn=$(basename "$orig_exec")
-        # 在包内找实际二进制（先找可执行的，再找同名文件）
+        # 在包内找实际二进制（先找可执行的，再找同名文件，全目录递归）
         local real_path
-        real_path=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" "$extract_dir/usr/sbin" "$extract_dir/sbin" \
-            -maxdepth 1 -type f -executable -name "$bn" 2>/dev/null | head -1)
-        # 兜底：不限制 -executable
-        [[ -z "$real_path" ]] && real_path=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" \
-            -maxdepth 1 -type f -name "$bn" 2>/dev/null | head -1)
+        real_path=$(find "$extract_dir" -type f -executable -name "$bn" 2>/dev/null | head -1)
+        # 兜底：不限制 -executable，全目录搜索
+        [[ -z "$real_path" ]] && real_path=$(find "$extract_dir" -type f -name "$bn" 2>/dev/null | head -1)
         if [[ -n "$real_path" ]]; then
             chmod +x "$real_path" 2>/dev/null || true
-            sed -i "s|^Exec=.*${bn}|Exec=${real_path}|" "$file"
+            sed -i "s|^Exec=.*|Exec=${real_path}|" "$file"
         elif [[ "$orig_exec" != /* ]]; then
             local search_path="${extract_dir}/usr/bin/${orig_exec}"
             [[ -f "$search_path" ]] && chmod +x "$search_path" 2>/dev/null || true
