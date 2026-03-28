@@ -220,10 +220,27 @@ _tdoc_check_service() {
 # 输出：auth_url 字符串
 _tdoc_generate_auth_url() {
     local code
-    code=$(openssl rand -hex 8 2>/dev/null || \
-           cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' 2>/dev/null | head -c 16 || \
-           date +%s%N 2>/dev/null | sha256sum 2>/dev/null | head -c 16 || \
-           echo "$(date +%s)$$")
+    # 安全的随机数生成
+    if command -v openssl &>/dev/null; then
+        # 使用 openssl 生成 16 字节随机数（更安全）
+        code=$(openssl rand -hex 16)
+    elif command -v pwgen &>/dev/null; then
+        # 使用 pwgen 生成安全随机字符串
+        code=$(pwgen -s 16 1)
+    else
+        # 使用 urandom 和 base64（更安全的备用方案）
+        code=$(head -c 16 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)
+    fi
+    
+    # 确保代码长度
+    if [ -z "$code" ] || [ ${#code} -lt 8 ]; then
+        # 最简备用方案
+        code=$(date +%s%N | sha256sum | head -c 16)
+    fi
+    
+    # 设置临时文件权限
+    echo "$code" > "$_TDOC_CODE_FILE"
+    chmod 600 "$_TDOC_CODE_FILE" 2>/dev/null || true
 
     echo "$code" > "$_TDOC_CODE_FILE"
     echo "${_TDOC_AUTH_BASE}?nlc=1&authType=1&code=${code}&mcp_source=desktop"
@@ -259,10 +276,23 @@ _tdoc_start_bg_poll() {
         code=$(cat "$code_file")
         local url="${api_base}/oauth/v2/mcp/token/get?code=${code}"
 
+        # 动态轮询间隔：前 3 次快速轮询，后续逐渐延长
         for ((i=1; i<=poll_max; i++)); do
+            # 计算当前轮询间隔
+            if [[ $i -le 3 ]]; then
+                current_interval=5  # 前3次每5秒轮询一次
+            elif [[ $i -le 6 ]]; then
+                current_interval=8  # 第4-6次每8秒轮询一次
+            else
+                current_interval=12  # 后续每12秒轮询一次
+            fi
+            
+            # 显示轮询进度
+            echo -ne "等待授权 [$i/$poll_max]...\\r" > /dev/null
+            
             local response
             response=$(curl -s -f -L "$url" 2>/dev/null) || {
-                sleep "$poll_interval"
+                sleep "$current_interval"
                 continue
             }
 
@@ -280,7 +310,7 @@ _tdoc_start_bg_poll() {
             ret=$(echo "$response" | jq -r '.ret // empty' 2>/dev/null || echo "")
             # 11510 = 用户还未授权，继续等待
             if [[ "$ret" == "11510" ]]; then
-                sleep "$poll_interval"
+                sleep "$current_interval"
                 continue
             fi
             local expired
@@ -304,8 +334,29 @@ _tdoc_start_bg_poll() {
                     rm -f "$code_file" "$pid_file"
                     exit 1
                     ;;
+                "50001"|"50002"|"50003")
+                    # API服务错误
+                    echo "err_api_service" > "$err_file"
+                    rm -f "$code_file" "$pid_file"
+                    exit 1
+                    ;;
+                "10001")
+                    # 无效请求
+                    echo "err_invalid_request" > "$err_file"
+                    rm -f "$code_file" "$pid_file"
+                    exit 1
+                    ;;
+                "20001")
+                    # 权限不足
+                    echo "err_permission" > "$err_file"
+                    rm -f "$code_file" "$pid_file"
+                    exit 1
+                    ;;
                 *)
-                    # 其他错误：记录但继续等待，给用户更多时间
+                    # 其他错误：记录详细错误信息
+                    echo "err_unknown_$ret" > "$err_file"
+                    # 记录完整错误信息供调试
+                    echo "DEBUG: API Response: $response" >> "/tmp/tdoc_debug.log"
                     sleep "$poll_interval"
                     continue
                     ;;
