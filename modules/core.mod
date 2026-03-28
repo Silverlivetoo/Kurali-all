@@ -149,7 +149,7 @@ init_dirs() {
 
 # ─── 帮助 ───
 show_help() {
-    cat << 'EOF'
+    cat << EOF
 KuraliAll v${KURALI_VERSION} — 全能Linux包管理器 (纯Shell版)
 
 用法:  kurali <命令> [选项] [参数]
