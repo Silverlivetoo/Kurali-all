@@ -321,6 +321,48 @@ EOF
     ok "安装完成！使用 'kurali help' 查看帮助"
 }
 
+# ─── 自卸载 ───
+cmd_uninstall_self() {
+    need_root
+    local target="/var/lib/kuraliAll"
+    local bin="/usr/local/bin/kurali"
+
+    if [[ ! -d "$target" && ! -f "$bin" ]]; then
+        info "KuraliAll 似乎未安装"; return 0
+    fi
+
+    local pkg_count=0
+    [[ -d "${target}/pkg" ]] && pkg_count=$(find "${target}/pkg" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+
+    danger_confirm "确定要卸载 KuraliAll? 此操作不可撤销!"
+
+    # 移除命令
+    [[ -f "$bin" ]] && { rm -f "$bin"; ok "已移除 ${bin}"; }
+
+    # 清理桌面文件
+    for uh in /root /home/*; do
+        [[ -d "$uh" ]] || continue
+        find "${uh}/.local/share/applications" -name "kurali-*.desktop" -type f -delete 2>/dev/null
+        find "${uh}/.local/share/icons/hicolor/256x256/apps" -name "kurali-*" -type f -delete 2>/dev/null
+    done
+
+    # 删除安装目录（保留用户数据）
+    if [[ -d "$target" ]]; then
+        rm -f "${target}/kuraliAll.sh" "${target}/version"
+        rm -rf "${target}/modules" "${target}/config" "${target}/hooks" "${target}/cache"
+        ok "已删除程序文件"
+        if [[ $pkg_count -gt 0 ]]; then
+            info "已安装的包数据保留在 ${target}/pkg"
+            info "完全删除: sudo rm -rf ${target}"
+        else
+            rm -rf "$target"
+            ok "已删除 ${target}"
+        fi
+    fi
+
+    ok "KuraliAll 已卸载"
+}
+
 # ─── 版本信息 ───
 cmd_version() {
     echo -e "\n${C_BOLD}KuraliAll 版本信息:${C_RESET}"
@@ -410,6 +452,9 @@ main() {
         update|ver|version)   cmd_version ;;
         self-update|upgrade)
             declare -F cmd_self_update >/dev/null && cmd_self_update || die "update 模块不可用"
+            ;;
+        uninstall-self)
+            cmd_uninstall_self
             ;;
         network)
             declare -F cmd_network >/dev/null && cmd_network "${args[@]}" || die "update 模块不可用"

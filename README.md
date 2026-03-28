@@ -31,6 +31,12 @@ sudo bash kuraliAll.sh i myapp.deb
 sudo bash kuraliAll.sh --install-self
 kurali i myapp.rpm
 kurali i myapp.AppImage
+
+# 卸载 KuraliAll
+sudo bash uninstall.sh          # 保留已安装的包数据
+sudo bash uninstall.sh --purge  # 全部删除
+# 或
+sudo kurali uninstall-self
 ```
 
 ## 📁 项目结构

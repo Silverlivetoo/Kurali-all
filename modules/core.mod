@@ -179,6 +179,7 @@ KuraliAll v3.0.0 — 全能Linux包管理器 (纯Shell版)
   -v                详细输出
   -q                静默模式
   --install-self    安装 KuraliAll 到系统
+  uninstall-self    卸载 KuraliAll（保留已安装的包数据）
 
 支持: .deb  .rpm  .pkg.tar.*  .pacman  .apk  AppImage  .tar.*  .zip
 发行版: Debian/Ubuntu/RHEL/CentOS/Fedora/Arch/Alpine/openSUSE 等 20+
