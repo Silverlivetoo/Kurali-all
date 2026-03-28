@@ -178,16 +178,12 @@ docker_fallback() {
     local file="$1" name="$2"
     echo -e "\n${C_BOLD}安装失败，可选操作:${C_RESET}"
     echo "  1) 容器运行 (${CONTAINER_RT:-检测中...})"
-    echo "  2) RAM 模式（内存运行，不安装）"
-    echo "  3) 放弃"
-    read -rp "$(echo -e "${C_YELLOW}[?]${C_RESET} 选择 [1-3]: ")" ch
+    echo "  2) 放弃"
+    read -rp "$(echo -e "${C_YELLOW}[?]${C_RESET} 选择 [1-2]: ")" ch
     case "$ch" in
         1)
             detect_container_rt || { err "Docker/Podman 不可用"; return 1; }
             docker_install "$file" "$name"
-            ;;
-        2)
-            run_in_ram "$file"
             ;;
         *) info "放弃" ;;
     esac

@@ -23,7 +23,6 @@ BACKUP_DIR="${KURALI_HOME}/backup"
 CACHE_DIR="${KURALI_HOME}/cache"
 
 # ─── 全局标志 ───
-MODE_RAM=0
 MODE_DOCKER=0
 MODE_SYSTEM=0
 MODE_BACKUP=1
@@ -162,7 +161,6 @@ KuraliAll v${KURALI_VERSION} — 全能Linux包管理器 (纯Shell版)
   l                  列出已安装的包
   s  <关键词>        搜索已安装的包
   f  <包名>          查看包详情
-  run <文件>         内存模式运行（不安装，退出即清理）
   pack <文件> [输出]  把任意格式打包成 .kurali 格式
   native <包名>      用系统原生包管理器安装
   deps [文件]        检查系统/程序依赖
@@ -173,7 +171,7 @@ KuraliAll v${KURALI_VERSION} — 全能Linux包管理器 (纯Shell版)
   help               显示帮助
 
 选项:
-  --ram             内存模式
+  -D|--docker       Docker 兜底模式
   --system          直接安装到系统路径 (⚠ 危险)
   --no-backup       不备份被覆盖的文件
   --distro=<id>     指定发行版

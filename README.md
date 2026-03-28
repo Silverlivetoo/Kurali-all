@@ -52,7 +52,6 @@ kurali-all/
 │   ├── core.mod        # 核心：常量、日志、模块加载
 │   ├── system.mod      # 发行版检测、原生包管理器
 │   ├── pkg-handler.mod # 统一包格式处理（8 种格式）
-│   ├── ram-run.mod     # 内存运行模式
 │   ├── docker-run.mod  # Docker/Podman 兜底
 │   ├── desktop.mod     # 桌面集成
 │   ├── service.mod     # 服务管理
@@ -68,7 +67,6 @@ kurali-all/
 # 安装
 kurali i <文件>                    # 安装软件包
 kurali i --system <文件>           # 直接安装到系统路径 ⚠
-kurali i --ram <文件>              # RAM 模式运行
 
 # 管理
 kurali r <包名>                    # 卸载

@@ -21,7 +21,6 @@ source "${KURALI_MODULES_DIR}/core.mod"
 # ─── 加载功能模块 ───
 load_module "system"      || die "核心模块 system.mod 加载失败"
 load_module "pkg-handler" || die "核心模块 pkg-handler.mod 加载失败"
-load_module "ram-run"     2>/dev/null
 load_module "docker-run"  2>/dev/null
 load_module "desktop"     2>/dev/null
 load_module "service"     2>/dev/null
@@ -395,7 +394,6 @@ main() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            -R|--ram)          MODE_RAM=1; shift ;;
             -D|--docker)       MODE_DOCKER=1; shift ;;
             --system)          MODE_SYSTEM=1; shift ;;
             --no-backup)       MODE_BACKUP=0; shift ;;
@@ -413,15 +411,6 @@ main() {
         esac
     done
 
-    # RAM 快捷方式
-    if [[ "$MODE_RAM" -eq 1 ]]; then
-        if [[ -z "$cmd" && ${#args[@]} -gt 0 ]]; then
-            cmd="run"
-        elif [[ -n "$cmd" && "$cmd" != "run" && "$cmd" != "exec" ]]; then
-            args=("$cmd" "${args[@]}")
-            cmd="run"
-        fi
-    fi
     [[ -z "$cmd" ]] && { show_help; exit 0; }
 
     # 命令路由
@@ -442,10 +431,6 @@ main() {
         f|info|show)
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali f <包名>"
             cmd_info "${args[0]}"
-            ;;
-        run|exec)
-            [[ ${#args[@]} -lt 1 ]] && die "用法: kurali run <文件>"
-            declare -F run_in_ram >/dev/null && run_in_ram "${args[0]}" || die "ram-run 模块不可用"
             ;;
         pack)
             [[ ${#args[@]} -lt 1 ]] && die "用法: kurali pack <文件> [输出名.kurali]"
