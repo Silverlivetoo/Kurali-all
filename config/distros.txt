@@ -1,0 +1,26 @@
+# KuraliAll 发行版数据库
+# 格式: id|name|pkg_mgr|install_cmd|remove_cmd|query_cmd
+debian|Debian|apt|apt-get install -y|apt-get remove -y|dpkg -s
+ubuntu|Ubuntu|apt|apt-get install -y|apt-get remove -y|dpkg -s
+linuxmint|Linux Mint|apt|apt-get install -y|apt-get remove -y|dpkg -s
+pop|Pop!_OS|apt|apt-get install -y|apt-get remove -y|dpkg -s
+kali|Kali Linux|apt|apt-get install -y|apt-get remove -y|dpkg -s
+elementary|elementary OS|apt|apt-get install -y|apt-get remove -y|dpkg -s
+rhel|RHEL|yum|yum install -y|yum remove -y|rpm -q
+centos|CentOS|yum|yum install -y|yum remove -y|rpm -q
+rocky|Rocky Linux|dnf|dnf install -y|dnf remove -y|rpm -q
+almalinux|AlmaLinux|dnf|dnf install -y|dnf remove -y|rpm -q
+fedora|Fedora|dnf|dnf install -y|dnf remove -y|rpm -q
+oraclelinux|Oracle Linux|yum|yum install -y|yum remove -y|rpm -q
+arch|Arch Linux|pacman|pacman -S --noconfirm|pacman -Rs --noconfirm|pacman -Qi
+manjaro|Manjaro|pacman|pacman -S --noconfirm|pacman -Rs --noconfirm|pacman -Qi
+endeavouros|EndeavourOS|pacman|pacman -S --noconfirm|pacman -Rs --noconfirm|pacman -Qi
+artix|Artix Linux|pacman|pacman -S --noconfirm|pacman -Rs --noconfirm|pacman -Qi
+catos|CatOS|pacman|pacman -S --noconfirm|pacman -Rs --noconfirm|pacman -Qi
+alpine|Alpine|apk|apk add|apk del|apk info -e
+opensuse|openSUSE|zypper|zypper install -y|zypper remove -y|zypper info
+sles|SLES|zypper|zypper install -y|zypper remove -y|zypper info
+void|Void Linux|xbps|xbps-install -Sy|xbps-remove -Ry|xbps-query -S
+solus|Solus|eopkg|eopkg install -y|eopkg remove -y|eopkg info
+nixos|NixOS|nix-env|nix-env -iA|nix-env -e|nix-env -q
+gentoo|Gentoo|emerge|emerge|emerge -C|emerge -p
