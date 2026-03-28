@@ -459,14 +459,12 @@ main() {
         network)
             declare -F cmd_network >/dev/null && cmd_network "${args[@]}" || die "update 模块不可用"
             ;;
+        *)
+            local _err_msg="未知命令: ${cmd} — 用 kurali help 查看帮助"
+            err "$_err_msg"
+            exit 1
+            ;;
     esac
-
-    # case 未匹配到任何命令
-    if [[ -n "$cmd" ]]; then
-        local _err_msg="未知命令: ${cmd} — 用 kurali help 查看帮助"
-        err "$_err_msg"
-        exit 1
-    fi
 }
 
 main "$@"
