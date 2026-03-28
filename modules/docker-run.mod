@@ -129,10 +129,31 @@ EOF
 
     # 生成运行脚本
     local script="${PKG_DIR}/${name}/run.sh"
+
+    # 检测显示协议，生成对应的转发参数
+    local display_args=""
+    if [[ -n "${WAYLAND_DISPLAY:-}" && -n "${XDG_RUNTIME_DIR:-}" ]]; then
+        # Wayland
+        display_args="-e WAYLAND_DISPLAY -v ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:/run/user/1000/${WAYLAND_DISPLAY}:ro -e XDG_RUNTIME_DIR=/run/user/1000"
+    elif [[ -n "${DISPLAY:-}" ]]; then
+        # X11
+        display_args="-e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:ro"
+    fi
+
+    # GPU 支持（NVIDIA）
+    local gpu_args=""
+    if has_cmd nvidia-smi && nvidia-smi &>/dev/null; then
+        gpu_args="--gpus all"
+    fi
+
     cat > "$script" << EOF
 #!/bin/bash
 # KuraliAll 容器运行: ${name}
-${CONTAINER_RT} run -it --rm kurali/${name} "\$@"
+${CONTAINER_RT} run -it --rm --net=host --ipc=host \\
+    -e HOME=/root \\
+    ${display_args} \\
+    ${gpu_args} \\
+    kurali/${name} "\$@"
 EOF
     chmod +x "$script"
 
@@ -153,12 +174,24 @@ _gen_mount_run() {
     mkdir -p "$extract_dir"
     extract_pkg "$file" "$(detect_format "$(basename "$file")")" "$extract_dir" 2>/dev/null || true
 
+    # 检测显示协议
+    local display_export=""
+    if [[ -n "${WAYLAND_DISPLAY:-}" && -n "${XDG_RUNTIME_DIR:-}" ]]; then
+        display_export="export WAYLAND_DISPLAY='${WAYLAND_DISPLAY}'; export XDG_RUNTIME_DIR=/run/user/1000"
+    elif [[ -n "${DISPLAY:-}" ]]; then
+        display_export="export DISPLAY='${DISPLAY}'"
+    fi
+
     local script="${PKG_DIR}/${name}/run.sh"
     cat > "$script" << EOF
 #!/bin/bash
 # KuraliAll 容器挂载运行: ${name}
 # 包文件挂载到容器内，不安装到镜像
-${CONTAINER_RT} run -it --rm -v "${extract_dir}:/mnt/pkg:ro" ${base} /bin/bash -c '
+${CONTAINER_RT} run -it --rm --net=host --ipc=host \\
+    -v "${extract_dir}:/mnt/pkg:ro" \\
+    -v /tmp/.X11-unix:/tmp/.X11-unix:ro \\
+    ${base} /bin/bash -c '
+${display_export}
 export PATH="/mnt/pkg/usr/bin:/mnt/pkg/bin:/mnt/pkg/usr/local/bin:\$PATH"
 export LD_LIBRARY_PATH="/mnt/pkg/usr/lib:/mnt/pkg/usr/lib64:/mnt/pkg/lib:\$LD_LIBRARY_PATH"
 echo "=== KuraliAll 容器 (${name}) ==="
