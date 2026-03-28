@@ -147,7 +147,16 @@ _apply_files() {
     cp -af "${src_dir}/kuraliAll.sh" "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
     chmod +x "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
 
-    # 更新版本标记 + commit hash
+    # 先复制模块（新 core.mod 必须先到位）
+    for d in modules config hooks; do
+        if [[ -d "${src_dir}/${d}" ]]; then
+            for f in "${src_dir}/${d}/"*; do
+                [[ -f "$f" ]] && cp -af "$f" "${_K_DIR}/${d}/" 2>/dev/null || true
+            done
+        fi
+    done
+
+    # 再从新 core.mod 读版本号写入 version 文件
     local new_ver
     new_ver=$(grep '^KURALI_VERSION=' "${_K_DIR}/modules/core.mod" 2>/dev/null | head -1 | sed 's/.*"\(.*\)".*/\1/')
     [[ -n "$new_ver" ]] && echo "$new_ver" > "${_K_DIR}/version"
@@ -161,14 +170,6 @@ _apply_files() {
         applied_hash=$(_get_remote_commit 2>/dev/null) || true
     fi
     [[ -n "$applied_hash" ]] && echo "$applied_hash" > "${_K_DIR}/commit"
-
-    for d in modules config hooks; do
-        if [[ -d "${src_dir}/${d}" ]]; then
-            for f in "${src_dir}/${d}/"*; do
-                [[ -f "$f" ]] && cp -af "$f" "${_K_DIR}/${d}/" 2>/dev/null || true
-            done
-        fi
-    done
 }
 
 # ─── 下载并应用更新 ───
