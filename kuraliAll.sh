@@ -6,6 +6,9 @@
 
 set -uo pipefail
 
+# ─── 原始参数（供 need_root 自动提权使用）────
+_K_ARGS=("$@")
+
 # ─── 路径 ───
 _K_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export KURALI_MODULES_DIR="${_K_DIR}/modules"

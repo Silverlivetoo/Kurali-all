@@ -67,7 +67,10 @@ has_cmd() { command -v "$1" &>/dev/null; }
 
 # ─── 权限 ───
 need_root() {
-    [[ "$EUID" -ne 0 ]] && die "需要 root 权限 (sudo kuraliAll ...)"
+    if [[ "$EUID" -ne 0 ]]; then
+        info "自动提权..."
+        exec sudo -- "$0" "${_K_ARGS[@]+"${_K_ARGS[@]}"}"
+    fi
 }
 
 # ─── 解压后修复文件权限（dpkg-deb -x 可能丢失执行权限）───

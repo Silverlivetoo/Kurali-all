@@ -21,7 +21,10 @@ _err()   { printf "${C_RED}[ERR] ${C_RESET}  %s\n" "$*" >&2; }
 _die()   { _err "$*"; exit 1; }
 
 # ─── 权限检查 ───
-[[ "$EUID" -eq 0 ]] || _die "请用 sudo 运行: sudo bash install.sh"
+if [[ "$EUID" -ne 0 ]]; then
+    _info "自动提权..."
+    exec sudo -- bash "$0" "$@"
+fi
 
 # ─── 路径 ───
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
