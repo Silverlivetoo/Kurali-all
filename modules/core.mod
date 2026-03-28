@@ -42,7 +42,12 @@ _log() {
 info()  { _log "INFO"  "$C_BLUE"   "$*"; }
 ok()    { _log "OK"    "$C_GREEN"  "$*"; }
 warn()  { _log "WARN"  "$C_YELLOW" "$*"; }
-err()   { _log "ERROR" "$C_RED"    "$*"; }
+err()   {
+    local msg="$*"
+    local ts; ts="$(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -d "$LOG_DIR" && -w "$LOG_DIR/kuraliAll.log" ]] && echo "[$ts] [ERROR] $msg" >> "$LOG_DIR/kuraliAll.log" 2>/dev/null || true
+    echo -e "${C_RED}[ERROR]${C_RESET} $msg" >&2
+}
 debug() { [[ "$VERBOSE" -eq 1 ]] && _log "DEBUG" "$C_CYAN" "$*"; }
 die()   { err "$*"; exit 1; }
 
@@ -86,7 +91,7 @@ _fix_perms() {
     # 恢复 ELF 和脚本的执行权限（全目录扫描）
     find "$dir" -type f 2>/dev/null | while IFS= read -r f; do
         local head_bytes
-        head_bytes=$(xxd -l 4 -p "$f" 2>/dev/null)
+        head_bytes=$(od -A n -t x1 -N 4 "$f" 2>/dev/null | tr -d ' \n')
         if [[ "$head_bytes" == "7f454c46" ]]; then
             # ELF 二进制
             chmod +x "$f" 2>/dev/null || true

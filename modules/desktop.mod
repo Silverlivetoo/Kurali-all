@@ -3,11 +3,11 @@
 
 # 获取真实用户的 home（兼容 sudo 运行）
 _user_home() {
-    if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
-        eval echo "~${SUDO_USER}"
-    else
-        echo "$HOME"
+    if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
+        local uh; uh=$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)
+        [[ -n "$uh" ]] && { echo "$uh"; return; }
     fi
+    echo "${HOME:-/root}"
 }
 
 # 修复 .desktop 文件中的 Exec 和 Icon 路径

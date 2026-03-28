@@ -54,7 +54,7 @@ get_pkg_name() {
             ;;
         pacman)
             if has_cmd bsdtar; then
-                name=$(bsdtar xf "$file" -O .PKGINFO 2>/dev/null | grep -E "^pkgname\s*=" | head -1 | sed 's/^pkgname\s*=\s*//')
+                name=$(bsdtar xf "$file" -O .PKGINFO 2>/dev/null | grep -E "^pkgname[[:space:]]*=" | head -1 | sed 's/^pkgname[[:space:]]*=[[:space:]]*//')
             fi
             [[ -z "$name" ]] && name=$(basename "$file" | sed 's/\.pkg\.tar.*//')
             ;;
@@ -67,8 +67,8 @@ get_pkg_name() {
         apk)
             local tmp; tmp=$(mktemp -d)
             tar xzf "$file" -C "$tmp" .PKGINFO 2>/dev/null
-            name=$(grep -E "^origin\s*=" "$tmp/.PKGINFO" 2>/dev/null | head -1 | sed 's/^origin\s*=\s*//')
-            [[ -z "$name" ]] && name=$(grep -E "^pkgname\s*=" "$tmp/.PKGINFO" 2>/dev/null | head -1 | sed 's/^pkgname\s*=\s*//')
+            name=$(grep -E "^origin[[:space:]]*=" "$tmp/.PKGINFO" 2>/dev/null | head -1 | sed 's/^origin[[:space:]]*=[[:space:]]*//')
+            [[ -z "$name" ]] && name=$(grep -E "^pkgname[[:space:]]*=" "$tmp/.PKGINFO" 2>/dev/null | head -1 | sed 's/^pkgname[[:space:]]*=[[:space:]]*//')
             rm -rf "$tmp"
             [[ -z "$name" ]] && name=$(basename "$file" .apk)
             ;;
@@ -91,7 +91,7 @@ get_pkg_version() {
     case "$format" in
         deb)     has_cmd dpkg-deb && dpkg-deb -f "$file" Version 2>/dev/null ;;
         rpm)     has_cmd rpm && rpm -qp --qf "%{VERSION}" "$file" 2>/dev/null ;;
-        pacman)  has_cmd bsdtar && bsdtar xf "$file" -O .PKGINFO 2>/dev/null | grep -E "^pkgver\s*=" | head -1 | sed 's/^pkgver\s*=\s*//' ;;
+        pacman)  has_cmd bsdtar && bsdtar xf "$file" -O .PKGINFO 2>/dev/null | grep -E "^pkgver[[:space:]]*=" | head -1 | sed 's/^pkgver[[:space:]]*=[[:space:]]*//' ;;
         kurali)
             local tmp; tmp=$(mktemp -d)
             tar xzf "$file" -C "$tmp" .kurali/manifest.json 2>/dev/null
@@ -101,7 +101,7 @@ get_pkg_version() {
         apk)
             local tmp; tmp=$(mktemp -d)
             tar xzf "$file" -C "$tmp" .PKGINFO 2>/dev/null
-            grep -E "^pkgver\s*=" "$tmp/.PKGINFO" 2>/dev/null | head -1 | sed 's/^pkgver\s*=\s*//'
+            grep -E "^pkgver[[:space:]]*=" "$tmp/.PKGINFO" 2>/dev/null | head -1 | sed 's/^pkgver[[:space:]]*=[[:space:]]*//'
             rm -rf "$tmp"
             ;;
         *)  echo "unknown" ;;
@@ -369,12 +369,14 @@ find_executables() {
         [[ -d "$d" ]] && chmod +x "$d"/* 2>/dev/null || true
     done
     # 查找所有可执行文件（包括 /opt 等非标准路径）
-    find "$dir" -type f -executable 2>/dev/null | sort -u
+    local ex; ex=$(find "$dir" -type f -executable 2>/dev/null | sort -u)
     # 兜底：没有任何可执行文件时，列出 bin 目录下所有文件
-    if [[ $? -ne 0 || -z "$(find "$dir" -maxdepth 4 -type f -executable 2>/dev/null | head -1)" ]]; then
+    if [[ -z "$ex" ]]; then
         for d in "$dir/usr/bin" "$dir/bin" "$dir/usr/local/bin" "$dir/opt"; do
             [[ -d "$d" ]] && find "$d" -maxdepth 3 -type f 2>/dev/null
         done | sort -u
+    else
+        echo "$ex"
     fi
 }
 

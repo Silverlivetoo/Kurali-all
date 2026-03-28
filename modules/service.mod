@@ -20,6 +20,7 @@ detect_init_system() {
 manage_service() {
     local action="$1" svc="$2"
     [[ -z "$svc" ]] && die "用法: kurali boot <enable|disable|status> <服务名>"
+    [[ "$action" != "status" ]] && need_root
 
     local init; init=$(detect_init_system)
     debug "init 系统: $init"

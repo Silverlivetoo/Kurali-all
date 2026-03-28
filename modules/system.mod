@@ -55,6 +55,8 @@ native_install() {
     local pkg="$1"; [[ -z "$pkg" ]] && die "用法: kurali native <包名>"
     detect_distro 2>/dev/null || true
     info "通过 ${DISTRO_MGR:-系统} 安装: ${pkg}"
-    eval "$DISTRO_INSTALL $pkg"
+    local -a cmd_arr
+    read -ra cmd_arr <<< "$DISTRO_INSTALL"
+    "${cmd_arr[@]}" "$pkg"
 }
 
