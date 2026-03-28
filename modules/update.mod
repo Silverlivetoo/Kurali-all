@@ -147,6 +147,11 @@ _apply_files() {
     cp -af "${src_dir}/kuraliAll.sh" "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
     chmod +x "${_K_DIR}/kuraliAll.sh" 2>/dev/null || true
 
+    # 更新版本标记
+    local new_ver
+    new_ver=$(grep '^KURALI_VERSION=' "${_K_DIR}/modules/core.mod" 2>/dev/null | head -1 | sed 's/.*"\(.*\)".*/\1/')
+    [[ -n "$new_ver" ]] && echo "$new_ver" > "${_K_DIR}/version"
+
     for d in modules config hooks; do
         if [[ -d "${src_dir}/${d}" ]]; then
             for f in "${src_dir}/${d}/"*; do
