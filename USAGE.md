@@ -1,6 +1,6 @@
-# KuraliAll v2.1.2 — 详细使用手册
+# KuraliAll — 详细使用手册
 
-## 目录如下
+## 目录
 
 1. [安装 KuraliAll](#1-安装-kuraliall)
 2. [安装软件包](#2-安装软件包)
@@ -15,10 +15,9 @@
 11. [服务管理](#11-服务管理)
 12. [原生包管理器](#12-原生包管理器)
 13. [发行版指定](#13-发行版指定)
-14. [Python 版](#14-python-版)
-16. [GUI 版](#15-gui-版)
-17. [配置与环境变量](#16-配置与环境变量)
-18. [故障排除](#17-故障排除)
+14. [.kurali 格式](#14-kurali-格式)
+15. [配置与环境变量](#15-配置与环境变量)
+16. [故障排除](#16-故障排除)
 
 ---
 
@@ -27,14 +26,14 @@
 ### 方式一：直接使用（不安装）
 
 ```bash
-cd KuraliAll
+cd kurali-all
 sudo bash kuraliAll.sh i <文件>
 ```
 
 ### 方式二：安装到系统
 
 ```bash
-cd KuraliAll
+cd kurali-all
 sudo bash install.sh
 ```
 
@@ -61,18 +60,18 @@ kurali i <文件>
 
 ### 支持格式
 
-| 格式 | 命令 | 示例 |
-|------|------|------|
-| .deb | `kurali i xxx.deb` | `kurali i google-chrome.deb` |
-| .rpm | `kurali i xxx.rpm` | `kurali i vscode.rpm` |
-| pacman | `kurali i xxx.pkg.tar.zst` | `kurali i xxx.pacman` |
-| .apk (Alpine) | `kurali i xxx.apk` | `kurali i figlet.apk` |
-| AppImage | `kurali i xxx.AppImage` | `kurali i balenaEtcher.AppImage` |
-| tar | `kurali i xxx.tar.gz` | `kurali i node-v20.tar.xz` |
-| zip | `kurali i xxx.zip` | `kurali i myapp.zip` |
-| .kurali | `kurali i xxx.kurali` | `kurali i myapp.kurali` |
+| 格式 | 示例 |
+|------|------|
+| .deb | `kurali i google-chrome.deb` |
+| .rpm | `kurali i vscode.rpm` |
+| pacman | `kurali i xxx.pkg.tar.zst` |
+| .apk (Alpine) | `kurali i figlet.apk` |
+| AppImage | `kurali i balenaEtcher.AppImage` |
+| tar | `kurali i node-v20.tar.xz` |
+| zip | `kurali i myapp.zip` |
+| .kurali | `kurali i myapp.kurali` |
 
-> ⚠️ `.apk` 是 **Alpine Linux** 的包格式（Alpine Package Keeper），**不是安卓 APK**。Alpine .apk 内部是 tar.gz，包含 `.PKGINFO` 元数据和 `.SIGN.*` 签名文件。
+> ⚠️ `.apk` 是 **Alpine Linux** 的包格式（Alpine Package Keeper），**不是安卓 APK**。
 
 ### 安装模式
 
@@ -97,10 +96,7 @@ kurali i --system <文件>
 /var/lib/kuraliAll/backup/<路径>.<时间戳>.bak
 ```
 
-关闭备份：
-```bash
-kurali i --no-backup <文件>
-```
+关闭备份：`kurali i --no-backup <文件>`
 
 ---
 
@@ -110,7 +106,7 @@ kurali i --no-backup <文件>
 kurali r <包名>
 ```
 
-系统模式安装的包卸载时会提示确认（因为要从系统路径删除文件）。
+系统模式安装的包卸载时会提示确认。
 
 ---
 
@@ -157,8 +153,6 @@ kurali f <包名>
 kurali deps
 ```
 
-检查 glibc 版本和常用库（libc、libm、libdl 等）是否可用。
-
 ### 检查程序依赖
 
 ```bash
@@ -166,21 +160,6 @@ kurali deps /usr/bin/myapp
 ```
 
 用 `ldd` 检查程序需要哪些库，哪些缺失。
-
-**常见问题：**
-- `✗ libssl.so.3 => not found` — 需要安装 OpenSSL 3
-- `✗ libXXX.so.1 => not found` — 需要安装对应库
-
-**解决方案：**
-```bash
-# 找到库属于哪个包
-apt-file search libssl.so.3     # Debian/Ubuntu
-yum provides '*/libssl.so.3'    # RHEL/CentOS
-pacman -F libssl.so.3           # Arch
-
-# 安装
-kurali native <包名>
-```
 
 ---
 
@@ -197,7 +176,7 @@ kurali --ram <文件>
 **工作原理：**
 - 解压到 `/dev/shm` 或 `/run/user/$UID`（tmpfs = 内存盘）
 - 设置 `LD_LIBRARY_PATH` 和 `PATH`
-- 退出时自动清理（trap EXIT 信号）
+- 退出时自动清理
 
 **适合场景：**
 - 测试软件包
@@ -218,11 +197,6 @@ kurali i --system <文件>
 - 覆盖同名文件（自动备份到 `/var/lib/kuraliAll/backup/`）
 - 执行包内的 preinst/postinst 脚本
 - 更新 ldconfig 缓存
-
-**适用场景：**
-- 自定义 Linux 发行版构建
-- 需要文件精确放在系统路径
-- 离线部署
 
 ---
 
@@ -269,7 +243,7 @@ kurali --select-distro           # 交互式选择
 
 ---
 
-## 14. .kurali 格式（自定义打包）
+## 14. .kurali 格式
 
 `.kurali` 是 KuraliAll 自己的软件包格式，可以把任意支持的格式统一转换。
 
@@ -278,8 +252,6 @@ kurali --select-distro           # 交互式选择
 ```bash
 # 自动命名（包名-版本.kurali）
 kurali pack ./myapp.deb
-kurali pack ./vscode.rpm
-kurali pack ./app.pkg.tar.zst
 
 # 指定输出文件名
 kurali pack ./myapp.deb myapp-custom.kurali
@@ -293,9 +265,6 @@ package.kurali (tar.gz)
 │   ├── manifest.json    # 包元数据
 │   └── files.txt        # 文件清单
 ├── rootfs/              # 解压后的文件系统
-│   ├── usr/bin/
-│   ├── usr/lib/
-│   └── ...
 └── scripts/             # 维护脚本（可选）
     ├── preinst
     └── postinst
@@ -307,57 +276,9 @@ package.kurali (tar.gz)
 kurali i myapp-1.0.kurali
 ```
 
-与安装其他格式完全一致，自动读取 manifest.json 获取包信息。
-
-### 用途
-
-- 统一格式：把各种来源的包统一为 .kurali，方便分发
-- 便携存储：一个文件包含所有安装信息
-- 跨平台传递：在有网的机器打包，离线的机器安装
-
 ---
 
-## 15. Python 版
-
-需要 Python 3.6+：
-
-```bash
-python3 kuraliAll.py i <文件>
-python3 kuraliAll.py l
-python3 kuraliAll.py r <包名>
-python3 kuraliAll.py deps <文件>
-python3 kuraliAll.py run <文件>
-```
-
-功能与 Shell 版完全等价。
-
----
-
-## 16. GUI 版
-
-终端图形界面，无需 X11/tkinter：
-
-```bash
-python3 kuraliAll-gui.py
-```
-
-**操作：**
-- ↑↓ 键导航
-- Enter 确认选择
-- r 刷新列表
-- q 退出
-
-**功能：**
-- 安装/卸载软件包
-- 查看已安装列表
-- 搜索软件包
-- 依赖检查（含系统检查）
-- 查看包详情
-- RAM 模式运行
-
----
-
-## 17. 配置与环境变量
+## 15. 配置与环境变量
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
@@ -367,7 +288,7 @@ python3 kuraliAll-gui.py
 
 ---
 
-## 18. 故障排除
+## 16. 故障排除
 
 ### "不支持的格式"
 - 检查文件后缀是否正确
@@ -382,18 +303,11 @@ python3 kuraliAll-gui.py
 sudo kurali i <文件>
 ```
 
-### install.sh 安装后 Permission denied
-v2.1.2 已修复。旧版本安装后 `kurali` 命令报错是因为 `kuraliAll.sh` 缺少执行权限。
-如仍有此问题，手动执行：
+### Permission denied
+安装后 `kurali` 命令报错：
 ```bash
 sudo chmod +x /var/lib/kuraliAll/kuraliAll.sh
 ```
-
-### Python 版 deps 显示全部 ✗
-v2.1.2 已修复。旧版本在 `ldconfig` 不在 PATH 时会误报，更新后自动回退到常见库路径搜索。
-
-### Python 版安装 deb 包名不正确
-v2.1.2 已修复。旧版本用文件名推断包名（如 `myapp_1.0_amd64.deb` → `myapp_1`），现在优先用 `dpkg-deb -f` 提取真实的 Package 字段。
 
 ### 程序运行报错
 ```bash
@@ -428,17 +342,3 @@ pacman -Sw <包名>
 
 # 或从官网直接下载 .deb/.rpm/.AppImage 等
 ```
-
----
-
-## 更新日志
-
-### v2.1.2 — Bug 修复
-
-| # | 模块 | 修复 |
-|---|------|------|
-| 1 | install.sh | 安装后 `chmod +x kuraliAll.sh`，修复 Permission denied |
-| 2 | install.sh | 版本号同步为 2.1.0 |
-| 3 | kuraliAll.sh | `--install-self` 同样添加 `chmod +x` |
-| 4 | kuraliAll.py | `deps` 在 ldconfig 不可用时回退到库路径搜索 |
-| 5 | kuraliAll.py | deb/rpm 包名用 `dpkg-deb -f` / `rpm -qp` 提取 |

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════
-#  KuraliAll v2.2.0 — 全能 Linux 包管理器
+#  KuraliAll — 全能 Linux 包管理器
 #  纯 Shell 实现 | 离线工作 | 跨发行版 | 多格式支持
 # ═══════════════════════════════════════════════════════
 
@@ -12,21 +12,23 @@ export KURALI_MODULES_DIR="${_K_DIR}/modules"
 export KURALI_CONFIG_DIR="${_K_DIR}/config"
 export KURALI_HOOKS_DIR="${_K_DIR}/hooks"
 
-# ─── 加载模块 ───
+# ─── 加载核心模块 ───
 source "${KURALI_MODULES_DIR}/core.mod"
-load_module "system"    || die "核心模块加载失败"
-load_module "pkg-handler" 2>/dev/null
-load_module "ram-run"   2>/dev/null
-load_module "docker-run" 2>/dev/null
-load_module "desktop"   2>/dev/null
-load_module "service"   2>/dev/null
+
+# ─── 加载功能模块（可选，失败不阻断）───
+load_module "system"      || die "核心模块 system.mod 加载失败"
+load_module "pkg-handler" || warn "pkg-handler.mod 不可用，包处理功能受限"
+load_module "ram-run"     2>/dev/null
+load_module "docker-run"  2>/dev/null
+load_module "desktop"     2>/dev/null
+load_module "service"     2>/dev/null
 
 # ─── 加载钩子 ───
 [[ -f "${KURALI_HOOKS_DIR}/pre-install.mod" ]]  && source "${KURALI_HOOKS_DIR}/pre-install.mod"
 [[ -f "${KURALI_HOOKS_DIR}/post-install.mod" ]] && source "${KURALI_HOOKS_DIR}/post-install.mod"
 
 # ═══════════════════════════════════════════════════════
-#  核心命令实现
+#  命令实现
 # ═══════════════════════════════════════════════════════
 
 # ─── 安装 ───
@@ -49,19 +51,16 @@ cmd_install() {
     local pkg_dir="${PKG_DIR}/${pkg_name}"
     local extract_dir="${pkg_dir}/rootfs"
     mkdir -p "$extract_dir"
-    # 清理旧内容（重新安装场景）
     rm -rf "${extract_dir:?}/"* 2>/dev/null || true
 
     # pre-install 钩子
     declare -F pre_install_hook >/dev/null && pre_install_hook "$file" "$extract_dir"
 
-    # ─── MODE_SYSTEM: 直接安装到系统 ───
+    # ─── 系统安装模式 ───
     if [[ "$MODE_SYSTEM" -eq 1 ]]; then
         need_root
         info "⚠ 直接系统安装模式"
-        if [[ "$MODE_BACKUP" -eq 1 ]]; then
-            info "启用文件备份 (备份在 ${BACKUP_DIR})"
-        fi
+        [[ "$MODE_BACKUP" -eq 1 ]] && info "启用文件备份 (备份在 ${BACKUP_DIR})"
         danger_confirm "将 ${pkg_name} 的文件直接安装到系统根目录?"
 
         extract_pkg "$file" "$format" "$extract_dir" || die "解压失败"
@@ -80,7 +79,6 @@ cmd_install() {
         local file_count=0
         for dir in usr bin sbin lib lib32 lib64 libx32 etc var opt; do
             if [[ -d "${extract_dir}/${dir}" ]]; then
-                # 用 safe_copy 逐文件复制
                 while IFS= read -r f; do
                     safe_copy "$f" "/${dir}/${f#${extract_dir}/${dir}/}"
                     file_count=$((file_count+1))
@@ -128,7 +126,6 @@ cmd_install() {
         local linked=0
         for ex in $(find_executables "$extract_dir"); do
             local bn; bn=$(basename "$ex")
-            # AppImage: 用包名作 symlink，跳过 AppRun
             if [[ "$bn" == "AppRun" && "$format" == "appimage" ]]; then
                 ln -sf "$ex" "${link_dir}/${pkg_name}" 2>/dev/null || true
                 linked=$((linked+1))
@@ -142,16 +139,14 @@ cmd_install() {
         [[ $linked -gt 0 ]] && info "已链接 ${linked} 个命令到 ${link_dir}"
     fi
 
-    # 桌面集成（即使没有图标也创建 .desktop 文件）
+    # 桌面集成
     local desktop_ex; desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir" -maxdepth 2 -type f -executable 2>/dev/null | head -1)
     if [[ -n "$desktop_ex" ]]; then
-        # 尝试查找图标
         local icon_file=""
         for idir in "$extract_dir/usr/share/pixmaps" "$extract_dir/usr/share/icons/hicolor/256x256/apps" "$extract_dir/usr/share/icons/hicolor/128x128/apps" "$extract_dir/usr/share/icons/hicolor/64x64/apps" "$extract_dir/usr/share/icons/hicolor/48x48/apps"; do
             icon_file=$(find "$idir" -name "*.png" -o -name "*.svg" -o -name "*.ico" 2>/dev/null | head -1)
             [[ -n "$icon_file" ]] && break
         done
-        # 即使没有图标也创建桌面条目（使用系统默认图标）
         install_desktop_entry "$pkg_name" "$pkg_name" "$desktop_ex" "$icon_file" 2>/dev/null || true
     fi
 
@@ -200,14 +195,12 @@ cmd_remove() {
     if [[ -f "${pkg_dir}/${name}.files" ]]; then
         while IFS= read -r f; do
             local bn; bn=$(basename "$f")
-            if [[ -L "/usr/local/bin/${bn}" ]]; then
-                local target; target=$(readlink -f "/usr/local/bin/${bn}")
-                [[ "$target" == "${pkg_dir}"* ]] && rm -f "/usr/local/bin/${bn}" 2>/dev/null || true
-            fi
-            if [[ -L "${HOME}/.local/bin/${bn}" ]]; then
-                local target; target=$(readlink -f "${HOME}/.local/bin/${bn}")
-                [[ "$target" == "${pkg_dir}"* ]] && rm -f "${HOME}/.local/bin/${bn}" 2>/dev/null || true
-            fi
+            for ldir in "/usr/local/bin" "${HOME}/.local/bin"; do
+                if [[ -L "${ldir}/${bn}" ]]; then
+                    local target; target=$(readlink -f "${ldir}/${bn}")
+                    [[ "$target" == "${pkg_dir}"* ]] && rm -f "${ldir}/${bn}" 2>/dev/null || true
+                fi
+            done
         done < "${pkg_dir}/${name}.files"
     fi
 
@@ -301,7 +294,7 @@ EOF
     ok "安装完成！使用 'kurali help' 查看帮助"
 }
 
-# ─── 更新检查 ───
+# ─── 版本信息 ───
 cmd_update() {
     echo -e "\n${C_BOLD}KuraliAll 版本信息:${C_RESET}"
     echo -e "  当前: ${C_GREEN}v${KURALI_VERSION}${C_RESET}"
@@ -311,7 +304,7 @@ cmd_update() {
     echo ""
 }
 
-# ─── 打包 .kurali ───
+# ─── 打包 ───
 cmd_pack() {
     local file="$1"; shift
     local output="${1:-}"
@@ -347,12 +340,11 @@ main() {
         esac
     done
 
-    # RAM 快捷方式：kurali --ram <文件> 等价于 kurali run <文件>
+    # RAM 快捷方式
     if [[ "$MODE_RAM" -eq 1 ]]; then
         if [[ -z "$cmd" && ${#args[@]} -gt 0 ]]; then
             cmd="run"
         elif [[ -n "$cmd" && "$cmd" != "run" && "$cmd" != "exec" ]]; then
-            # cmd 实际是文件路径，将其移入 args
             args=("$cmd" "${args[@]}")
             cmd="run"
         fi
