@@ -139,24 +139,36 @@ cmd_install() {
         [[ $linked -gt 0 ]] && info "已链接 ${linked} 个命令到 ${link_dir}"
     fi
 
-    # 桌面集成
+    # 桌面集成：优先使用包内 .desktop，没有则自动生成
     if declare -F install_desktop_entry >/dev/null; then
-        local desktop_ex; desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" "$extract_dir" -maxdepth 2 -type f -executable 2>/dev/null | head -1)
-        if [[ -n "$desktop_ex" ]]; then
-            local icon_file=""
-            # 按优先级搜索图标：pixmap → hicolor 各尺寸 → apps → 全局 png/svg
-            while IFS= read -r idir; do
-                icon_file=$(find "$idir" -maxdepth 2 \( -name "*.png" -o -name "*.svg" -o -name "*.ico" -o -name "*.xpm" \) 2>/dev/null | head -1)
-                [[ -n "$icon_file" ]] && break
-            done << EOF
-$extract_dir/usr/share/pixmaps
-$extract_dir/usr/share/icons/hicolor/256x256/apps
-$extract_dir/usr/share/icons/hicolor/128x128/apps
-$extract_dir/usr/share/icons/hicolor/64x64/apps
-$extract_dir/usr/share/icons/hicolor/48x48/apps
-$extract_dir/usr/share/icons
-EOF
-            install_desktop_entry "$pkg_name" "$pkg_name" "$desktop_ex" "$icon_file" 2>/dev/null || true
+        # 查找包内自带的 .desktop 文件
+        local pkg_desktop=""
+        pkg_desktop=$(find "$extract_dir/usr/share/applications" -maxdepth 1 -name "*.desktop" -type f 2>/dev/null | head -1)
+
+        if [[ -n "$pkg_desktop" ]]; then
+            # 包内有 .desktop → 直接用，修复路径
+            info "使用包内桌面文件: $(basename "$pkg_desktop")"
+            install_desktop_from_pkg "$pkg_desktop" "$pkg_name" "$extract_dir" 2>/dev/null || true
+        else
+            # 包内没有 .desktop → 自动生成（排除 DEBIAN 目录）
+            local desktop_ex
+            desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" \
+                -maxdepth 1 -type f -executable 2>/dev/null | head -1)
+            if [[ -n "$desktop_ex" ]]; then
+                local icon_file=""
+                for idir in \
+                    "$extract_dir/usr/share/pixmaps" \
+                    "$extract_dir/usr/share/icons/hicolor/256x256/apps" \
+                    "$extract_dir/usr/share/icons/hicolor/128x128/apps" \
+                    "$extract_dir/usr/share/icons/hicolor/64x64/apps" \
+                    "$extract_dir/usr/share/icons/hicolor/48x48/apps" \
+                    "$extract_dir/usr/share/icons"; do
+                    [[ -d "$idir" ]] || continue
+                    icon_file=$(find "$idir" -maxdepth 2 \( -name "*.png" -o -name "*.svg" -o -name "*.xpm" \) -type f 2>/dev/null | head -1)
+                    [[ -n "$icon_file" ]] && break
+                done
+                install_desktop_entry "$pkg_name" "$pkg_name" "$desktop_ex" "$icon_file" 2>/dev/null || true
+            fi
         fi
     fi
 
@@ -173,7 +185,6 @@ path=${extract_dir}
 kuraliAll=${KURALI_VERSION}
 EOF
     find "$extract_dir" -type f 2>/dev/null > "${pkg_dir}/${pkg_name}.files"
-    declare -F refresh_desktop >/dev/null && refresh_desktop 2>/dev/null || true
 
     ok "安装完成: ${pkg_name} (${pkg_version:-未知版本})"
     [[ "$MODE_SYSTEM" -ne 1 ]] && info "安装路径: ${extract_dir}"
