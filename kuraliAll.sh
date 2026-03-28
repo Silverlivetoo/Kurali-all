@@ -405,7 +405,7 @@ main() {
             -q|--quiet)        QUIET=1; shift ;;
             -y|--yes)          NO_CONFIRM=1; shift ;;
             -h|--help|help)    show_help; exit 0 ;;
-            -*)                die "未知选项: $1 (kurali help)" ;;
+            -*)                die "未知选项: $1 — 用 kurali help 查看帮助" ;;
             *)
                 if [[ -z "$cmd" ]]; then cmd="$1"; else args+=("$1"); fi
                 shift ;;
@@ -456,7 +456,7 @@ main() {
         network)
             declare -F cmd_network >/dev/null && cmd_network "${args[@]}" || die "update 模块不可用"
             ;;
-        *)   die "未知命令: $cmd (kurali help)" ;;
+        *)   die "未知命令: $cmd — 用 kurali help 查看帮助" ;;
     esac
 }
 
