@@ -73,7 +73,11 @@ get_pkg_name() {
             [[ -z "$name" ]] && name=$(basename "$file" .apk)
             ;;
         appimage)
-            name=$(basename "$file" | sed 's/\.[Aa]pp[Ii]mage$//'); name="${name,,}"
+            # 尝试从文件名推断包名，去掉版本号和架构
+            local bn; bn=$(basename "$file" | sed 's/\.[Aa]pp[Ii]mage$//')
+            # 去掉常见后缀: _x86_64, -linux, -amd64 等
+            bn=$(echo "$bn" | sed -E 's/[-_](x86_64|aarch64|arm64|amd64|i[3-6]86|linux|Linux)$//')
+            name="${bn,,}"
             ;;
         tar|zip)
             name=$(basename "$file" | sed -E 's/\.(tar\.(gz|xz|bz2|zst)|tgz|zip)$//'); name="${name,,}"

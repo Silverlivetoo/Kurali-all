@@ -153,11 +153,15 @@ cmd_install() {
             info "使用包内桌面文件: $(basename "$pkg_desktop")"
             install_desktop_from_pkg "$pkg_desktop" "$pkg_name" "$extract_dir" || warn "桌面集成失败"
         else
-            # 包内没有 .desktop → 自动生成（排除 DEBIAN 目录）
+            # 包内没有 .desktop → 自动生成（全目录搜索可执行文件）
             local desktop_ex
-            desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" \
+            desktop_ex=$(find "$extract_dir" -maxdepth 1 -type f -executable 2>/dev/null | head -1)
+            [[ -z "$desktop_ex" ]] && desktop_ex=$(find "$extract_dir/usr/bin" "$extract_dir/bin" "$extract_dir/usr/local/bin" \
                 -maxdepth 1 -type f -executable 2>/dev/null | head -1)
+            # AppImage 兜底：找 AppRun
+            [[ -z "$desktop_ex" ]] && desktop_ex=$(find "$extract_dir" -name "AppRun" -type f 2>/dev/null | head -1)
             if [[ -n "$desktop_ex" ]]; then
+                chmod +x "$desktop_ex" 2>/dev/null || true
                 local icon_file=""
                 for idir in \
                     "$extract_dir/usr/share/pixmaps" \
@@ -165,7 +169,8 @@ cmd_install() {
                     "$extract_dir/usr/share/icons/hicolor/128x128/apps" \
                     "$extract_dir/usr/share/icons/hicolor/64x64/apps" \
                     "$extract_dir/usr/share/icons/hicolor/48x48/apps" \
-                    "$extract_dir/usr/share/icons"; do
+                    "$extract_dir/usr/share/icons" \
+                    "$extract_dir"; do
                     [[ -d "$idir" ]] || continue
                     icon_file=$(find "$idir" -maxdepth 2 \( -name "*.png" -o -name "*.svg" -o -name "*.xpm" \) -type f 2>/dev/null | head -1)
                     [[ -n "$icon_file" ]] && break
