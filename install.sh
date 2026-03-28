@@ -32,7 +32,7 @@ TARGET="/var/lib/kuraliAll"
 BIN="/usr/local/bin/kurali"
 
 # 从核心模块读取版本号
-VERSION=$(grep '^readonly KURALI_VERSION=' "${SRC_DIR}/modules/core.mod" 2>/dev/null \
+VERSION=$(grep '^KURALI_VERSION=' "${SRC_DIR}/modules/core.mod" 2>/dev/null \
     | head -1 | sed 's/.*"\(.*\)".*/\1/')
 VERSION="${VERSION:-3.0.0}"
 

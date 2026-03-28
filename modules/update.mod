@@ -234,6 +234,7 @@ _apply_update() {
 
 # ─── 主命令：self-update ───
 cmd_self_update() {
+    need_root
     echo -e "\n${C_BOLD}${KURALI_NAME} 自更新${C_RESET}"
     echo -e "  当前版本: ${C_GREEN}v${KURALI_VERSION}${C_RESET}"
     echo -e "  更新源:   ${KURALI_REPO_URL}"
