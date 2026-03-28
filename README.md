@@ -38,6 +38,8 @@ kurali i myapp.AppImage
 ```
 kurali-all/
 ├── kuraliAll.sh        # 主程序（含安装功能 --install-self）
+├── install.sh          # 独立安装脚本 (sudo bash install.sh)
+├── USAGE.md            # 详细使用手册
 ├── config/
 │   └── distros.txt     # 23 种发行版数据库
 ├── modules/
@@ -47,7 +49,8 @@ kurali-all/
 │   ├── ram-run.mod     # 内存运行模式
 │   ├── docker-run.mod  # Docker/Podman 兜底
 │   ├── desktop.mod     # 桌面集成
-│   └── service.mod     # 服务管理
+│   ├── service.mod     # 服务管理
+│   └── update.mod      # 联网自更新
 └── hooks/
     ├── pre-install.mod  # 安装前钩子
     └── post-install.mod # 安装后钩子
@@ -73,6 +76,9 @@ kurali pack <文件>                 # 打包为 .kurali 格式
 kurali native <包名>               # 调原生包管理器
 kurali boot enable <服务>          # 服务自启
 kurali update                      # 版本信息
+kurali self-update                 # 联网自更新
+kurali network status              # 查看联网许可状态
+kurali network revoke              # 撤销联网许可
 ```
 
 ## ⚠️ 注意事项
@@ -82,6 +88,15 @@ kurali update                      # 版本信息
 - 纯 Shell 实现，不需要 Python、Node.js 等运行时
 
 ## 📋 更新日志
+
+### v3.0.1 — Bug 修复与新功能
+
+- ✨ 新增 `self-update` 联网自更新（需用户授权，支持 git pull / zip 下载）
+- ✨ 新增 `network status|grant|revoke` 联网许可管理
+- 🐛 修复 deb 包解压后二进制权限丢失导致桌面图标无法启动
+- 🐛 修复桌面图标搜索范围过窄，改为全目录递归搜索（适配 /opt 等非标准路径）
+- 🐛 修复 AppImage 安装后无桌面图标，自动查找 AppRun 生成 .desktop
+- 🐛 修复 AppImage 包名包含架构后缀（如 _x86_64），自动清理
 
 ### v3.0.0 — 纯 Shell 重构
 
