@@ -22,6 +22,13 @@
 - OpenClaw 工作空间配置
 - 多种技能文件（Agent Skills）
 - 项目配置文件
+- SilverKurali 的私人令牌配置（请参考 COLLABORATION.md）
+
+## 访问配置
+
+SilverKurali 已经提供了私人令牌用于访问：
+- 令牌：c46bbc064ac8448e0653c0b1b5b005c5
+- 仓库地址：https://gitee.com/AY77-OP/kurali-all
 
 ## 使用说明
 

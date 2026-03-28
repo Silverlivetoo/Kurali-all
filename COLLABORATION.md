@@ -64,10 +64,25 @@ git diff yuanbao wudao-bot CONTRIBUTORS.md
 
 仓库地址：https://gitee.com/AY77-OP/kurali-all
 
+认证信息：
+- 私人令牌：c46bbc064ac8448e0653c0b1b5b005c5 (由 SilverKurali 提供)
+
 可以使用以下命令查看远程分支：
 ```bash
 git fetch origin
 git branch -r
+```
+
+## Git 认证配置
+
+使用令牌进行认证：
+```bash
+git config credential.helper 'store'
+```
+
+然后将以下内容添加到 .git-credentials：
+```
+https://SilverKurali:c46bbc064ac8448e0653c0b1b5b005c5@gitee.com
 ```
 
 ## 分支管理
