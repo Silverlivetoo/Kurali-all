@@ -2,7 +2,7 @@
 # core.mod — 核心：常量、日志、模块加载器
 # KuraliAll v3.0 — 纯 Shell 重构
 
-KURALI_VERSION="3.0.0"
+KURALI_VERSION="3.1.0"
 KURALI_NAME="KuraliAll"
 
 # ─── 颜色 ───
@@ -150,7 +150,7 @@ init_dirs() {
 # ─── 帮助 ───
 show_help() {
     cat << 'EOF'
-KuraliAll v3.0.0 — 全能Linux包管理器 (纯Shell版)
+KuraliAll v${KURALI_VERSION} — 全能Linux包管理器 (纯Shell版)
 
 用法:  kurali <命令> [选项] [参数]
 
